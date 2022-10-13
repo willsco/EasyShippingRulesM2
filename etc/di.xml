@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../lib/internal/Magento/Framework/ObjectManager/etc/config.xsd">
+
+    <virtualType name="WillScoEasyShippingRulesM2CarriersCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">willsco_esrm2_carriers</argument>
+            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\Carriers</argument>
+        </arguments>
+    </virtualType>
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="easyshippingrules_carriers_grid_data_source" xsi:type="string">WillScoEasyShippingRulesM2CarriersCollection</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

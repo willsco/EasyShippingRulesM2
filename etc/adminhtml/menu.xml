@@ -2,6 +2,9 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
         <add id="WillSco_EasyShippingRulesM2::menu" title="Easy Shipping Rules" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::menu" sortOrder="10"/>
-        <add id="WillSco_EasyShippingRulesM2::item" title="Custom Methods" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="willscoadmin/easyshippingrules_custommethod"/>
+        <add id="WillSco_EasyShippingRulesM2::item" title="Carriers" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/carriers"/>
+        <add id="WillSco_EasyShippingRulesM2::item2" title="Custom Methods" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/custommethods"/>
+        <add id="WillSco_EasyShippingRulesM2::item3" title="Existing Methods" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/existingmethods"/>
+        <add id="WillSco_EasyShippingRulesM2::item4" title="Rules" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/rules"/>
     </menu>
 </config>
