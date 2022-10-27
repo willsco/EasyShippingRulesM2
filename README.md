@@ -1,4 +1,4 @@
-# Mage2 Module WillSco EasyShippingRulesM2
+# EasyShippingRulesM2
 
     ``willsco/module-easyshippingrulesm2``
 
