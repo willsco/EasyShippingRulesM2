@@ -82,6 +82,31 @@
 		<paging name="listing_paging"/>
 	</listingToolbar>
 	<columns name="easyshippingrules_carriers_columns">
+
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="editorConfig" xsi:type="array">
+                    <item name="selectProvider" xsi:type="string">easyshippingrules_carriers_grid.easyshippingrules_carriers_grid.easyshippingrules_carriers_columns.ids</item>
+                    <item name="enabled" xsi:type="boolean">true</item>
+                    <item name="indexField" xsi:type="string">id</item>
+                    <item name="clientConfig" xsi:type="array">
+                        <item name="saveUrl" xsi:type="url" path="easyshippingrules/carriers/inlineEdit"/>
+                        <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                    </item>
+                </item>
+                <item name="childDefaults" xsi:type="array">
+                    <item name="fieldAction" xsi:type="array">
+                        <item name="provider" xsi:type="string">easyshippingrules_carriers_grid.easyshippingrules_carriers_grid.easyshippingrules_carriers_columns_editor</item>
+                        <item name="target" xsi:type="string">startEdit</item>
+                        <item name="params" xsi:type="array">
+                            <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                            <item name="1" xsi:type="boolean">true</item>
+                        </item>
+                    </item>
+                </item>
+            </item>
+        </argument>
+
 		<selectionsColumn name="ids">
 			<argument name="data" xsi:type="array">
 				<item name="config" xsi:type="array">
@@ -92,12 +117,7 @@
 		<column name="id">
 			<argument name="data" xsi:type="array">
 				<item name="config" xsi:type="array">
-					<item name="editor" xsi:type="array">
-						<item name="editorType" xsi:type="string">text</item>
-						<item name="validation" xsi:type="array">
-							<item name="required-entry" xsi:type="boolean">true</item>
-						</item>
-					</item>
+
 					<item name="filter" xsi:type="string">text</item>
 					<item name="sorting" xsi:type="string">desc</item>
 					<item name="label" xsi:type="string" translate="true">ID</item>
