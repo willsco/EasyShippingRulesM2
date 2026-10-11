@@ -120,18 +120,29 @@ class RuleValidatorTest extends TestCase
         );
     }
 
+    public function testSortsByPriorityThenIdWithInactiveRulesLast(): void
+    {
+        $collection = $this->collection([1, 2, 3], [1 => 5, 2 => 0, 3 => 5]);
+        $collection->method('addActiveFilter')->willReturnSelf();
+        $this->collectionFactory->method('create')->willReturn($collection);
+
+        $this->assertSame([2, 1, 3, 9], $this->validator->sortByPriority([9, 3, '1', 2]));
+    }
+
     /**
      * Collection mock iterating over rules with the given IDs.
      *
      * @param int[] $ids
+     * @param array<int, int> $sortOrders priority by rule ID (default 0)
      * @return Collection&MockObject
      */
-    private function collection(array $ids): Collection
+    private function collection(array $ids, array $sortOrders = []): Collection
     {
         $rules = [];
         foreach ($ids as $id) {
             $rule = $this->createMock(Rule::class);
             $rule->method('getId')->willReturn($id);
+            $rule->method('getSortOrder')->willReturn($sortOrders[$id] ?? 0);
             $rules[] = $rule;
         }
         $collection = $this->createMock(Collection::class);

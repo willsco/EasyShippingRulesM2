@@ -9,18 +9,19 @@ namespace WillSco\EasyShippingRulesM2\Model;
 
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Api\SearchResultsInterface;
-use Magento\Framework\Api\SearchResultsInterfaceFactory;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Psr\Log\LoggerInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodSearchResultsInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodSearchResultsInterfaceFactory;
 use WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod as ExistingMethodResource;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod\CollectionFactory;
 
-class ExistingMethodRepository implements ExistingMethodRepositoryInterface
+class ExistingMethodRepository implements ExistingMethodRepositoryInterface, ResetAfterRequestInterface
 {
     /**
      * @var array<int, ExistingMethodInterface>
@@ -34,7 +35,7 @@ class ExistingMethodRepository implements ExistingMethodRepositoryInterface
      * @param ExistingMethodFactory $methodFactory
      * @param CollectionFactory $collectionFactory
      * @param CollectionProcessorInterface $collectionProcessor
-     * @param SearchResultsInterfaceFactory $searchResultsFactory
+     * @param ExistingMethodSearchResultsInterfaceFactory $searchResultsFactory
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -42,9 +43,19 @@ class ExistingMethodRepository implements ExistingMethodRepositoryInterface
         private readonly ExistingMethodFactory $methodFactory,
         private readonly CollectionFactory $collectionFactory,
         private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly SearchResultsInterfaceFactory $searchResultsFactory,
+        private readonly ExistingMethodSearchResultsInterfaceFactory $searchResultsFactory,
         private readonly LoggerInterface $logger
     ) {
+    }
+
+    /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->instances = [];
     }
 
     /**
@@ -85,7 +96,7 @@ class ExistingMethodRepository implements ExistingMethodRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function getList(SearchCriteriaInterface $searchCriteria): SearchResultsInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): ExistingMethodSearchResultsInterface
     {
         $collection = $this->collectionFactory->create();
         $this->collectionProcessor->process($searchCriteria, $collection);

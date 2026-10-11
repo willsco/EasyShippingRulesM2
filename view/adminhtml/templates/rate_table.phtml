@@ -1,0 +1,109 @@
+<?php
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+/** @var \WillSco\EasyShippingRulesM2\Block\Adminhtml\RateTable $block */
+/** @var \Magento\Framework\Escaper $escaper */
+?>
+<section class="admin__page-section">
+    <p>
+        <?= $escaper->escapeHtml(__(
+            'A rate table prices a custom method by destination postcode, cart weight and subtotal. '
+            . 'Export the tables, edit them in a spreadsheet and import the file back. '
+            . 'The first matching line of the table, from top to bottom, sets the price; '
+            . 'when no line matches, the method is not offered.'
+        )) ?>
+    </p>
+</section>
+
+<section class="admin__page-section">
+    <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml(__('Export')) ?></span></div>
+    <form action="<?= $escaper->escapeUrl($block->getExportUrl()) ?>" method="get">
+        <fieldset class="fieldset admin__fieldset">
+            <div class="admin__field">
+                <label class="admin__field-label" for="esr-format">
+                    <span><?= $escaper->escapeHtml(__('Spreadsheet program')) ?></span>
+                </label>
+                <div class="admin__field-control">
+                    <select id="esr-format" name="format" class="admin__control-select">
+                        <?php foreach ($block->getFormats() as $value => $label): ?>
+                            <option value="<?= $escaper->escapeHtmlAttr($value) ?>">
+                                <?= $escaper->escapeHtml($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="admin__field-note">
+                        <?= $escaper->escapeHtml(__(
+                            'With no rate table yet, the file only has the column names: use it as a template.'
+                        )) ?>
+                    </div>
+                </div>
+            </div>
+            <div class="admin__field">
+                <div class="admin__field-control">
+                    <button type="submit" class="action-secondary">
+                        <span><?= $escaper->escapeHtml(__('Export CSV')) ?></span>
+                    </button>
+                </div>
+            </div>
+        </fieldset>
+    </form>
+</section>
+
+<section class="admin__page-section">
+    <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml(__('Import')) ?></span></div>
+    <form action="<?= $escaper->escapeUrl($block->getImportUrl()) ?>" method="post" enctype="multipart/form-data">
+        <input name="form_key" type="hidden" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+        <fieldset class="fieldset admin__fieldset">
+            <div class="admin__field _required">
+                <label class="admin__field-label" for="esr-file">
+                    <span><?= $escaper->escapeHtml(__('CSV file')) ?></span>
+                </label>
+                <div class="admin__field-control">
+                    <input id="esr-file" name="rate_table_file" type="file" accept=".csv,text/csv" required="required"/>
+                    <div class="admin__field-note">
+                        <?= $escaper->escapeHtml(__(
+                            'The tables of the methods in the file are replaced; other methods are not changed. '
+                            . 'If any line is wrong, nothing is imported and the errors are listed.'
+                        )) ?>
+                    </div>
+                </div>
+            </div>
+            <div class="admin__field">
+                <div class="admin__field-control">
+                    <button type="submit" class="action-primary">
+                        <span><?= $escaper->escapeHtml(__('Import')) ?></span>
+                    </button>
+                </div>
+            </div>
+        </fieldset>
+    </form>
+</section>
+
+<section class="admin__page-section">
+    <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml(__('Columns')) ?></span></div>
+    <table class="data-grid">
+        <thead>
+        <tr>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Column')) ?></th>
+            <th class="data-grid-th"><?= $escaper->escapeHtml(__('Content')) ?></th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach ($block->getColumnHelp() as $column => $help): ?>
+            <tr>
+                <td><code><?= $escaper->escapeHtml($column) ?></code></td>
+                <td><?= $escaper->escapeHtml($help) ?></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <p class="admin__field-note">
+        <?= $escaper->escapeHtml(__(
+            'Portuguese column names also work: transportadora, metodo, pais, cep_de, cep_ate, peso_de, peso_ate, '
+            . 'subtotal_de, subtotal_ate, preco.'
+        )) ?>
+    </p>
+</section>

@@ -9,7 +9,6 @@ namespace WillSco\EasyShippingRulesM2\Model\ResourceModel;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Magento\Store\Model\Store;
-use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
 
 /**
  * Method collection that loads store and rule links for all items at once.
@@ -63,12 +62,12 @@ abstract class AbstractMethodCollection extends AbstractCollection
 
         $methodIds = array_map('intval', array_keys($this->_items));
         if ($methodIds) {
-            $storeIds = $this->getResource()->lookupStoreIds($methodIds);
-            $ruleIds = $this->getResource()->lookupRuleIds($methodIds);
+            $links = $this->getResource()->lookupAllLinks($methodIds);
             foreach ($this->_items as $methodId => $item) {
                 $this->getResource()->unserializeFields($item);
-                $item->setData(MethodInterface::STORE_IDS, $storeIds[$methodId] ?? []);
-                $item->setData(MethodInterface::RULE_IDS, $ruleIds[$methodId] ?? []);
+                foreach ($links as $key => $ids) {
+                    $item->setData($key, $ids[$methodId] ?? []);
+                }
                 $item->setDataChanges(false);
             }
         }

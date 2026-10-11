@@ -43,6 +43,12 @@ interface MethodInterface
     public const CALCULATION_PERCENT_RATE = 'percent_rate';
 
     /**
+     * Price comes from the method's rate table row matching destination, weight and subtotal
+     * (custom methods only).
+     */
+    public const CALCULATION_RATE_TABLE = 'rate_table';
+
+    /**
      * Get ID.
      *
      * @return int|null

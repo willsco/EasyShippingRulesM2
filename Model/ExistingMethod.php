@@ -88,4 +88,36 @@ class ExistingMethod extends AbstractMethod implements ExistingMethodInterface
     {
         return $this->setData(self::SHIPPING_METHODS, $shippingMethods);
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function getSortOrder(): int
+    {
+        return (int)$this->getData(self::SORT_ORDER);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setSortOrder(int $sortOrder): ExistingMethodInterface
+    {
+        return $this->setData(self::SORT_ORDER, $sortOrder);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function isStopProcessing(): bool
+    {
+        return (bool)$this->getData(self::STOP_PROCESSING);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setStopProcessing(bool $stopProcessing): ExistingMethodInterface
+    {
+        return $this->setData(self::STOP_PROCESSING, (int)$stopProcessing);
+    }
 }

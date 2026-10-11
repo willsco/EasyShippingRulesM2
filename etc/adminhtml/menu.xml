@@ -46,6 +46,14 @@
              sortOrder="40"
              action="easyshippingrules/rule"
              resource="WillSco_EasyShippingRulesM2::rule"/>
+        <add id="WillSco_EasyShippingRulesM2::rate_table"
+             title="Rate Tables"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="42"
+             action="easyshippingrules/ratetable"
+             resource="WillSco_EasyShippingRulesM2::rate_table"/>
         <add id="WillSco_EasyShippingRulesM2::tester"
              title="Rule Tester"
              translate="title"

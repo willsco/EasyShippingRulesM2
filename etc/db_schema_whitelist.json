@@ -21,6 +21,7 @@
             "is_active": true,
             "conditions_serialized": true,
             "amount": true,
+            "sort_order": true,
             "created_at": true,
             "updated_at": true
         },
@@ -79,6 +80,41 @@
             "WILLSCO_ESR_CUSTOM_METHOD_RULE_RULE_ID_WILLSCO_ESR_RULE_RULE_ID": true
         }
     },
+    "willsco_esr_custom_method_carrier": {
+        "column": {
+            "method_id": true,
+            "carrier_id": true
+        },
+        "index": {
+            "WILLSCO_ESR_CUSTOM_METHOD_CARRIER_CARRIER_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_CARRIER_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_CARRIER_CARRIER_ID_WILLSCO_ESR_CARRIER_CARRIER_ID": true
+        }
+    },
+    "willsco_esr_rate_table": {
+        "column": {
+            "row_id": true,
+            "method_id": true,
+            "dest_country_id": true,
+            "postcode_from": true,
+            "postcode_to": true,
+            "weight_from": true,
+            "weight_to": true,
+            "subtotal_from": true,
+            "subtotal_to": true,
+            "price": true
+        },
+        "index": {
+            "WILLSCO_ESR_RATE_TABLE_METHOD_ID_DEST_COUNTRY_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_RATE_TABLE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID": true
+        }
+    },
     "willsco_esr_existing_method": {
         "column": {
             "method_id": true,
@@ -90,6 +126,8 @@
             "calculation_type": true,
             "amount": true,
             "shipping_methods": true,
+            "sort_order": true,
+            "stop_processing": true,
             "created_at": true,
             "updated_at": true
         },

@@ -7,27 +7,23 @@ declare(strict_types=1);
 
 namespace WillSco\EasyShippingRulesM2\Model\Rule\Condition;
 
+use Magento\Customer\Api\CustomerRepositoryInterface;
+use Magento\Customer\Api\Data\CustomerInterface;
 use Magento\Customer\Model\Customer as CustomerModel;
-use Magento\Customer\Model\CustomerFactory;
 use Magento\Customer\Model\ResourceModel\Customer as CustomerResource;
 use Magento\Eav\Model\Config as EavConfig;
 use Magento\Framework\DataObject;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Model\AbstractModel;
-use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Rule\Model\Condition\AbstractCondition;
 use Magento\Rule\Model\Condition\Context;
 
 /**
  * Condition on an attribute of the customer that owns the quote.
  */
-class Customer extends AbstractCondition implements ResetAfterRequestInterface
+class Customer extends AbstractCondition
 {
     use BetweenOperatorTrait;
-
-    /**
-     * @var array<int, CustomerModel|null>
-     */
-    private array $customers = [];
 
     /**
      * Initialize dependencies.
@@ -35,28 +31,18 @@ class Customer extends AbstractCondition implements ResetAfterRequestInterface
      * @param Context $context
      * @param EavConfig $eavConfig
      * @param CustomerResource $customerResource
-     * @param CustomerFactory $customerFactory
+     * @param CustomerRepositoryInterface $customerRepository
      * @param array $data
      */
     public function __construct(
         Context $context,
         private readonly EavConfig $eavConfig,
         private readonly CustomerResource $customerResource,
-        private readonly CustomerFactory $customerFactory,
+        private readonly CustomerRepositoryInterface $customerRepository,
         array $data = []
     ) {
         parent::__construct($context, $data);
         $this->setType(self::class);
-    }
-
-    /**
-     * Drop cached data between requests of a long-running application server.
-     *
-     * @return void
-     */
-    public function _resetState(): void
-    {
-        $this->customers = [];
     }
 
     /**
@@ -153,23 +139,38 @@ class Customer extends AbstractCondition implements ResetAfterRequestInterface
             return false;
         }
 
-        return $this->validateAttribute($customer->getData($this->getAttribute()));
+        return $this->validateAttribute($this->getAttributeValue($customer, (string)$this->getAttribute()));
     }
 
     /**
-     * Load customer.
+     * Load customer; the repository keeps loaded customers for the request.
      *
      * @param int $customerId
-     * @return CustomerModel|null
+     * @return CustomerInterface|null
      */
-    private function loadCustomer(int $customerId): ?CustomerModel
+    private function loadCustomer(int $customerId): ?CustomerInterface
     {
-        if (!array_key_exists($customerId, $this->customers)) {
-            $customer = $this->customerFactory->create();
-            $this->customerResource->load($customer, $customerId);
-            $this->customers[$customerId] = $customer->getId() ? $customer : null;
+        try {
+            return $this->customerRepository->getById($customerId);
+        } catch (NoSuchEntityException $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Value of a system or custom attribute of the customer.
+     *
+     * @param CustomerInterface $customer
+     * @param string $attributeCode
+     * @return mixed
+     */
+    private function getAttributeValue(CustomerInterface $customer, string $attributeCode)
+    {
+        $customAttribute = $customer->getCustomAttribute($attributeCode);
+        if ($customAttribute !== null) {
+            return $customAttribute->getValue();
         }
 
-        return $this->customers[$customerId];
+        return $customer->__toArray()[$attributeCode] ?? null;
     }
 }

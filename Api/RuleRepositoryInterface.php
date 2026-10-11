@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace WillSco\EasyShippingRulesM2\Api;
 
 use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Api\SearchResultsInterface;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use WillSco\EasyShippingRulesM2\Api\Data\RuleInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\RuleSearchResultsInterface;
 
 interface RuleRepositoryInterface
 {
@@ -38,9 +38,9 @@ interface RuleRepositoryInterface
      * Get list.
      *
      * @param SearchCriteriaInterface $searchCriteria
-     * @return SearchResultsInterface
+     * @return RuleSearchResultsInterface
      */
-    public function getList(SearchCriteriaInterface $searchCriteria): SearchResultsInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): RuleSearchResultsInterface;
 
     /**
      * Delete.

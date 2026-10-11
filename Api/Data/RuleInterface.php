@@ -18,6 +18,7 @@ interface RuleInterface
     public const IS_ACTIVE = 'is_active';
     public const CONDITIONS_SERIALIZED = 'conditions_serialized';
     public const AMOUNT = 'amount';
+    public const SORT_ORDER = 'sort_order';
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
 
@@ -95,6 +96,36 @@ interface RuleInterface
      * @return $this
      */
     public function setAmount(?float $amount): self;
+
+    /**
+     * Priority: when several rules of a method are valid, the lowest value wins (then the lowest ID).
+     *
+     * @return int
+     */
+    public function getSortOrder(): int;
+
+    /**
+     * Set priority.
+     *
+     * @param int $sortOrder
+     * @return $this
+     */
+    public function setSortOrder(int $sortOrder): self;
+
+    /**
+     * Conditions tree as JSON, as stored by the rule editor; null when the rule has no conditions.
+     *
+     * @return string|null
+     */
+    public function getConditionsJson(): ?string;
+
+    /**
+     * Set the conditions tree as JSON. Only this module's condition types are accepted on save.
+     *
+     * @param string|null $conditionsJson
+     * @return $this
+     */
+    public function setConditionsJson(?string $conditionsJson): self;
 
     /**
      * Get created at.

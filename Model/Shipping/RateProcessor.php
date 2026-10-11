@@ -14,9 +14,14 @@ use Magento\Quote\Model\Quote\Address\RateResult\Method;
 use Magento\Quote\Model\Quote\Address\RateResult\MethodFactory;
 use Magento\Shipping\Model\Rate\Result;
 use Magento\Store\Model\ScopeInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CustomMethodInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
+use WillSco\EasyShippingRulesM2\Model\Carrier;
 use WillSco\EasyShippingRulesM2\Model\CustomMethod;
 use WillSco\EasyShippingRulesM2\Model\ExistingMethod;
+use WillSco\EasyShippingRulesM2\Model\RateTable\RateFinder;
+use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory as CarrierCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\CollectionFactory as CustomMethodCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod\CollectionFactory as ExistingMethodCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\RuleValidator;
@@ -38,6 +43,8 @@ class RateProcessor
      * @param CarrierCode $carrierCode
      * @param MethodFactory $rateMethodFactory
      * @param ScopeConfigInterface $scopeConfig
+     * @param CarrierCollectionFactory $carrierCollectionFactory
+     * @param RateFinder $rateFinder
      */
     public function __construct(
         private readonly CustomMethodCollectionFactory $customMethodCollectionFactory,
@@ -46,7 +53,9 @@ class RateProcessor
         private readonly PriceCalculator $priceCalculator,
         private readonly CarrierCode $carrierCode,
         private readonly MethodFactory $rateMethodFactory,
-        private readonly ScopeConfigInterface $scopeConfig
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly CarrierCollectionFactory $carrierCollectionFactory,
+        private readonly RateFinder $rateFinder
     ) {
     }
 
@@ -98,39 +107,121 @@ class RateProcessor
         // Free shipping granted by a Cart Price Rule zeroes custom methods, as native carriers do.
         $freeShipping = (bool)$request->getFreeShipping();
 
+        /** @var CustomMethod[] $methods */
         $methods = $this->customMethodCollectionFactory->create()
             ->addActiveFilter()
             ->addStoreFilter($storeId)
-            ->addActiveCarrierFilter();
+            ->addActiveCarrierFilter()
+            ->setOrder('main_table.method_id', 'ASC')
+            ->getItems();
+        if (!$methods) {
+            return [];
+        }
 
-        $rates = [];
-        /** @var CustomMethod $method */
+        $tablePrices = $this->rateTablePrices($methods, $request);
+        $prices = [];
         foreach ($methods as $method) {
-            $carrierCode = $this->carrierCode->build((int)$method->getCarrierId());
+            $price = $this->getPrice($method, $request, $address, $tablePrices);
+            if ($price !== null) {
+                $prices[(int)$method->getId()] = $freeShipping ? 0.0 : $price;
+            }
+        }
+
+        // One rate per method and carrier, grouped by carrier position.
+        $rates = [];
+        foreach ($this->getActiveCarriers() as $carrierId => $carrier) {
+            $carrierCode = $this->carrierCode->build($carrierId);
             if ($limitCarriers !== null && !in_array($carrierCode, $limitCarriers, true)) {
                 continue;
             }
 
-            $rule = $this->ruleValidator->getFirstValidRule($this->sortedRuleIds($method->getRuleIds()), $address);
-            if ($rule === null) {
-                continue;
+            foreach ($methods as $method) {
+                $methodId = (int)$method->getId();
+                if (!isset($prices[$methodId]) || !in_array($carrierId, $method->getCarrierIds(), true)) {
+                    continue;
+                }
+
+                /** @var Method $rate */
+                $rate = $this->rateMethodFactory->create();
+                $rate->setCarrier($carrierCode);
+                $rate->setCarrierTitle($carrier->getName());
+                $rate->setMethod($this->carrierCode->buildMethod($methodId));
+                $rate->setMethodTitle($method->getName());
+                $rate->setPrice($prices[$methodId]);
+                $rate->setCost($prices[$methodId]);
+
+                $rates[] = $rate;
             }
-
-            $price = $freeShipping ? 0.0 : $this->priceCalculator->calculate($method, $rule, $request);
-
-            /** @var Method $rate */
-            $rate = $this->rateMethodFactory->create();
-            $rate->setCarrier($carrierCode);
-            $rate->setCarrierTitle($method->getData('carrier_name'));
-            $rate->setMethod($this->carrierCode->buildMethod((int)$method->getId()));
-            $rate->setMethodTitle($method->getName());
-            $rate->setPrice($price);
-            $rate->setCost($price);
-
-            $rates[] = $rate;
         }
 
         return $rates;
+    }
+
+    /**
+     * Price of a custom method, or null when it does not apply to the cart.
+     *
+     * A rate table method needs a matching table row; when it has rules, one must also be valid.
+     *
+     * @param CustomMethodInterface $method
+     * @param RateRequest $request
+     * @param Address $address
+     * @param array $tablePrices rate table prices by method ID
+     * @return float|null
+     */
+    private function getPrice(
+        CustomMethodInterface $method,
+        RateRequest $request,
+        Address $address,
+        array $tablePrices
+    ): ?float {
+        $ruleIds = $method->getRuleIds();
+        $rule = $ruleIds ? $this->ruleValidator->getFirstValidRule($ruleIds, $address) : null;
+
+        if ($method->getCalculationType() === MethodInterface::CALCULATION_RATE_TABLE) {
+            return $ruleIds && $rule === null ? null : ($tablePrices[(int)$method->getId()] ?? null);
+        }
+
+        return $rule === null ? null : $this->priceCalculator->calculate($method, $rule, $request);
+    }
+
+    /**
+     * Prices of the rate table methods, by method ID, for those with a matching row.
+     *
+     * @param CustomMethodInterface[] $methods
+     * @param RateRequest $request
+     * @return array<int, float>
+     */
+    private function rateTablePrices(array $methods, RateRequest $request): array
+    {
+        $methodIds = [];
+        foreach ($methods as $method) {
+            if ($method->getCalculationType() === MethodInterface::CALCULATION_RATE_TABLE) {
+                $methodIds[] = (int)$method->getId();
+            }
+        }
+
+        return $methodIds ? $this->rateFinder->findPrices($methodIds, $request) : [];
+    }
+
+    /**
+     * Active carriers by ID, in position order.
+     *
+     * @return array<int, Carrier>
+     */
+    private function getActiveCarriers(): array
+    {
+        $collection = $this->carrierCollectionFactory->create()
+            ->addFieldToFilter('is_active', 1)
+            ->setOrder('sort_order', 'ASC')
+            ->setOrder('carrier_id', 'ASC');
+
+        $carriers = [];
+        /** @var Carrier $carrier */
+        foreach ($collection as $carrier) {
+            $carriers[(int)$carrier->getId()] = $carrier;
+        }
+
+        return $carriers;
     }
 
     /**
@@ -147,24 +238,34 @@ class RateProcessor
         $methods = $this->existingMethodCollectionFactory->create()
             ->addActiveFilter()
             ->addStoreFilter($storeId)
+            ->setOrder('main_table.sort_order', 'ASC')
             ->setOrder('main_table.method_id', 'ASC');
 
+        // Rates changed by a method with "Discard subsequent existing methods", by rate code.
+        $locked = [];
         /** @var ExistingMethod $method */
         foreach ($methods as $method) {
-            $rule = $this->ruleValidator->getFirstValidRule($this->sortedRuleIds($method->getRuleIds()), $address);
+            $rule = $this->ruleValidator->getFirstValidRule($method->getRuleIds(), $address);
             if ($rule === null) {
                 continue;
             }
 
             $changed = [];
             foreach ($rates as $rate) {
-                if (!$rate instanceof Method || !$this->matches($method, $rate)) {
+                if (!$rate instanceof Method
+                    || isset($locked[$this->rateCode($rate)])
+                    || !$this->matches($method, $rate)
+                ) {
                     $changed[] = $rate;
                     continue;
                 }
 
                 if ($method->getActionType() === ExistingMethodInterface::ACTION_HIDE) {
                     continue;
+                }
+
+                if ($method->isStopProcessing()) {
+                    $locked[$this->rateCode($rate)] = true;
                 }
 
                 // The result still holds the original rate until the swap.
@@ -213,7 +314,18 @@ class RateProcessor
         $codes = $method->getShippingMethods();
 
         return in_array(ExistingMethodInterface::ALL_SHIPPING_METHODS, $codes, true)
-            || in_array($rate->getCarrier() . '_' . $rate->getMethod(), $codes, true);
+            || in_array($this->rateCode($rate), $codes, true);
+    }
+
+    /**
+     * Shipping method code of a rate, as "carrier_method".
+     *
+     * @param Method $rate
+     * @return string
+     */
+    private function rateCode(Method $rate): string
+    {
+        return $rate->getCarrier() . '_' . $rate->getMethod();
     }
 
     /**
@@ -233,18 +345,5 @@ class RateProcessor
         }
 
         return $this->ruleValidator->isValid($ruleId, $address) !== false;
-    }
-
-    /**
-     * Lowest rule ID wins when more than one rule is valid.
-     *
-     * @param int[] $ruleIds
-     * @return int[]
-     */
-    private function sortedRuleIds(array $ruleIds): array
-    {
-        sort($ruleIds);
-
-        return $ruleIds;
     }
 }

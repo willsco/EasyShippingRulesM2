@@ -23,22 +23,22 @@ class Collection extends AbstractMethodCollection
     }
 
     /**
-     * Keep only methods whose carrier exists and is active, ordered by carrier position.
-     *
-     * Adds the carrier name to each item as "carrier_name".
+     * Keep only methods linked to at least one active carrier.
      *
      * @return $this
      */
     public function addActiveCarrierFilter(): self
     {
-        $this->getSelect()
+        $subSelect = $this->getConnection()->select()
+            ->from(['link' => $this->getTable(CustomMethodResource::CARRIER_TABLE)], ['method_id'])
             ->join(
                 ['carrier' => $this->getTable(CarrierResource::MAIN_TABLE)],
-                'carrier.carrier_id = main_table.carrier_id AND carrier.is_active = 1',
-                ['carrier_name' => 'carrier.name']
+                'carrier.carrier_id = link.carrier_id',
+                []
             )
-            ->order('carrier.sort_order ASC')
-            ->order('main_table.method_id ASC');
+            ->where('carrier.is_active = ?', 1);
+
+        $this->getSelect()->where('main_table.method_id IN (?)', $subSelect);
 
         return $this;
     }

@@ -16,6 +16,8 @@ interface ExistingMethodInterface extends MethodInterface
     public const METHOD_TITLE = 'method_title';
     public const ACTION_TYPE = 'action_type';
     public const SHIPPING_METHODS = 'shipping_methods';
+    public const SORT_ORDER = 'sort_order';
+    public const STOP_PROCESSING = 'stop_processing';
 
     public const ACTION_OVERWRITE = 'overwrite';
     public const ACTION_SURCHARGE = 'surcharge';
@@ -86,4 +88,34 @@ interface ExistingMethodInterface extends MethodInterface
      * @return $this
      */
     public function setShippingMethods(array $shippingMethods): self;
+
+    /**
+     * Priority: existing methods run from the lowest value to the highest (then by ID).
+     *
+     * @return int
+     */
+    public function getSortOrder(): int;
+
+    /**
+     * Set priority.
+     *
+     * @param int $sortOrder
+     * @return $this
+     */
+    public function setSortOrder(int $sortOrder): self;
+
+    /**
+     * Whether the rates this method changes are left alone by the existing methods after it.
+     *
+     * @return bool
+     */
+    public function isStopProcessing(): bool;
+
+    /**
+     * Set stop processing.
+     *
+     * @param bool $stopProcessing
+     * @return $this
+     */
+    public function setStopProcessing(bool $stopProcessing): self;
 }

@@ -15,6 +15,10 @@
     <preference for="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\RuleRepository"/>
     <preference for="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\CustomMethodRepository"/>
     <preference for="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\ExistingMethodRepository"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\CarrierSearchResultsInterface" type="WillSco\EasyShippingRulesM2\Model\SearchResults\CarrierSearchResults"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\RuleSearchResultsInterface" type="WillSco\EasyShippingRulesM2\Model\SearchResults\RuleSearchResults"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\CustomMethodSearchResultsInterface" type="WillSco\EasyShippingRulesM2\Model\SearchResults\CustomMethodSearchResults"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodSearchResultsInterface" type="WillSco\EasyShippingRulesM2\Model\SearchResults\ExistingMethodSearchResults"/>
 
     <!-- Shipping rate integration -->
     <type name="Magento\Shipping\Model\Shipping">

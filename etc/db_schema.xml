@@ -28,6 +28,7 @@
         <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
         <column xsi:type="mediumtext" name="conditions_serialized" nullable="true" comment="Conditions Serialized"/>
         <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
+        <column xsi:type="int" name="sort_order" unsigned="false" nullable="false" default="0" comment="Priority"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -40,6 +41,7 @@
 
     <table name="willsco_esr_custom_method" resource="default" engine="innodb" comment="Easy Shipping Rules - Custom Method">
         <column xsi:type="int" name="method_id" unsigned="true" nullable="false" identity="true" comment="Method ID"/>
+        <!-- No longer used: carriers are linked in willsco_esr_custom_method_carrier. -->
         <column xsi:type="int" name="carrier_id" unsigned="true" nullable="true" comment="Carrier ID"/>
         <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
         <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
@@ -102,6 +104,50 @@
         </index>
     </table>
 
+    <table name="willsco_esr_custom_method_carrier" resource="default" engine="innodb" comment="Easy Shipping Rules - Custom Method To Carrier">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Method ID"/>
+        <column xsi:type="int" name="carrier_id" unsigned="true" nullable="false" comment="Carrier ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+            <column name="carrier_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_CARRIER_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID"
+                    table="willsco_esr_custom_method_carrier" column="method_id"
+                    referenceTable="willsco_esr_custom_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_CARRIER_CARRIER_ID_WILLSCO_ESR_CARRIER_CARRIER_ID"
+                    table="willsco_esr_custom_method_carrier" column="carrier_id"
+                    referenceTable="willsco_esr_carrier" referenceColumn="carrier_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_CUSTOM_METHOD_CARRIER_CARRIER_ID" indexType="btree">
+            <column name="carrier_id"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_rate_table" resource="default" engine="innodb" comment="Easy Shipping Rules - Rate Table Row">
+        <column xsi:type="int" name="row_id" unsigned="true" nullable="false" identity="true" comment="Row ID"/>
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Custom Method ID"/>
+        <column xsi:type="varchar" name="dest_country_id" nullable="false" length="4" default="" comment="Destination Country (empty: any)"/>
+        <column xsi:type="varchar" name="postcode_from" nullable="false" length="20" default="" comment="Postcode From (empty: no limit)"/>
+        <column xsi:type="varchar" name="postcode_to" nullable="false" length="20" default="" comment="Postcode To (empty: no limit)"/>
+        <column xsi:type="decimal" name="weight_from" scale="4" precision="12" unsigned="false" nullable="true" comment="Weight From"/>
+        <column xsi:type="decimal" name="weight_to" scale="4" precision="12" unsigned="false" nullable="true" comment="Weight To"/>
+        <column xsi:type="decimal" name="subtotal_from" scale="4" precision="12" unsigned="false" nullable="true" comment="Subtotal From"/>
+        <column xsi:type="decimal" name="subtotal_to" scale="4" precision="12" unsigned="false" nullable="true" comment="Subtotal To"/>
+        <column xsi:type="decimal" name="price" scale="4" precision="12" unsigned="false" nullable="false" default="0" comment="Price"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="row_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_RATE_TABLE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID"
+                    table="willsco_esr_rate_table" column="method_id"
+                    referenceTable="willsco_esr_custom_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_RATE_TABLE_METHOD_ID_DEST_COUNTRY_ID" indexType="btree">
+            <column name="method_id"/>
+            <column name="dest_country_id"/>
+        </index>
+    </table>
+
     <table name="willsco_esr_existing_method" resource="default" engine="innodb" comment="Easy Shipping Rules - Existing Method">
         <column xsi:type="int" name="method_id" unsigned="true" nullable="false" identity="true" comment="Method ID"/>
         <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
@@ -112,6 +158,8 @@
         <column xsi:type="varchar" name="calculation_type" nullable="false" length="32" default="fixed" comment="Calculation Type"/>
         <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
         <column xsi:type="text" name="shipping_methods" nullable="true" comment="Shipping Methods (JSON)"/>
+        <column xsi:type="int" name="sort_order" unsigned="false" nullable="false" default="0" comment="Priority"/>
+        <column xsi:type="smallint" name="stop_processing" unsigned="true" nullable="false" default="0" comment="Discard Subsequent Existing Methods"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">

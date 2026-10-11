@@ -21,6 +21,7 @@ use WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Controller\Adminhtml\FormDataTrait;
 use WillSco\EasyShippingRulesM2\Model\Source\ActionType;
 use WillSco\EasyShippingRulesM2\Model\Source\CalculationType;
+use WillSco\EasyShippingRulesM2\Model\Source\ShippingMethods;
 
 class Save extends Action implements HttpPostActionInterface
 {
@@ -39,6 +40,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param ActionType $actionTypeSource
      * @param CalculationType $calculationTypeSource configured with rate percentage in di.xml
      * @param RuleRepositoryInterface $ruleRepository
+     * @param ShippingMethods $shippingMethodsSource
      */
     public function __construct(
         Context $context,
@@ -47,7 +49,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly DataPersistorInterface $dataPersistor,
         private readonly ActionType $actionTypeSource,
         private readonly CalculationType $calculationTypeSource,
-        private readonly RuleRepositoryInterface $ruleRepository
+        private readonly RuleRepositoryInterface $ruleRepository,
+        private readonly ShippingMethods $shippingMethodsSource
     ) {
         parent::__construct($context);
     }
@@ -75,6 +78,13 @@ class Save extends Action implements HttpPostActionInterface
             if (!$shippingMethods) {
                 throw new LocalizedException(__('"%1" is required.', __('Shipping Methods')));
             }
+            $unavailable = $this->shippingMethodsSource->getUnavailableCodes($shippingMethods);
+            if ($unavailable) {
+                throw new LocalizedException(__(
+                    'No active carrier offers these shipping methods: %1.',
+                    implode(', ', $unavailable)
+                ));
+            }
 
             $method->setName($this->toRequiredString($data[ExistingMethodInterface::NAME] ?? '', 'Name'))
                 ->setCarrierTitle(trim((string)($data[ExistingMethodInterface::CARRIER_TITLE] ?? '')) ?: null)
@@ -91,6 +101,8 @@ class Save extends Action implements HttpPostActionInterface
                     'Calculation Type'
                 ))
                 ->setAmount($this->toNullableFloat($data[ExistingMethodInterface::AMOUNT] ?? null))
+                ->setSortOrder((int)($data[ExistingMethodInterface::SORT_ORDER] ?? 0))
+                ->setStopProcessing((bool)($data[ExistingMethodInterface::STOP_PROCESSING] ?? false))
                 ->setShippingMethods($shippingMethods)
                 ->setStoreIds($this->toStoreIds($data[ExistingMethodInterface::STORE_IDS] ?? []))
                 ->setRuleIds($this->toIdList($data[ExistingMethodInterface::RULE_IDS] ?? []));

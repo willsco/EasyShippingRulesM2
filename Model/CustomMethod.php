@@ -28,18 +28,16 @@ class CustomMethod extends AbstractMethod implements CustomMethodInterface
     /**
      * @inheritdoc
      */
-    public function getCarrierId(): ?int
+    public function getCarrierIds(): array
     {
-        $carrierId = $this->getData(self::CARRIER_ID);
-
-        return $carrierId ? (int)$carrierId : null;
+        return array_map('intval', (array)$this->getData(self::CARRIER_IDS));
     }
 
     /**
      * @inheritdoc
      */
-    public function setCarrierId(?int $carrierId): CustomMethodInterface
+    public function setCarrierIds(array $carrierIds): CustomMethodInterface
     {
-        return $this->setData(self::CARRIER_ID, $carrierId);
+        return $this->setData(self::CARRIER_IDS, $carrierIds);
     }
 }

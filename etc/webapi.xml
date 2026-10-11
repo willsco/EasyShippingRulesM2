@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/easyshippingrules/carriers" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" method="getList"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::carrier"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/carriers/:carrierId" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" method="getById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::carrier"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/carriers" method="POST">
+        <service class="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::carrier"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/carriers/:id" method="PUT">
+        <service class="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::carrier"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/carriers/:carrierId" method="DELETE">
+        <service class="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" method="deleteById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::carrier"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/rules" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" method="getList"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::rule"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/rules/:ruleId" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" method="getById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::rule"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/rules" method="POST">
+        <service class="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::rule"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/rules/:id" method="PUT">
+        <service class="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::rule"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/rules/:ruleId" method="DELETE">
+        <service class="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" method="deleteById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::rule"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/custom-methods" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" method="getList"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::custom_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/custom-methods/:methodId" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" method="getById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::custom_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/custom-methods" method="POST">
+        <service class="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::custom_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/custom-methods/:id" method="PUT">
+        <service class="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::custom_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/custom-methods/:methodId" method="DELETE">
+        <service class="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" method="deleteById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::custom_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/existing-methods" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" method="getList"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::existing_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/existing-methods/:methodId" method="GET">
+        <service class="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" method="getById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::existing_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/existing-methods" method="POST">
+        <service class="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::existing_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/existing-methods/:id" method="PUT">
+        <service class="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" method="save"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::existing_method"/>
+        </resources>
+    </route>
+    <route url="/V1/easyshippingrules/existing-methods/:methodId" method="DELETE">
+        <service class="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" method="deleteById"/>
+        <resources>
+            <resource ref="WillSco_EasyShippingRulesM2::existing_method"/>
+        </resources>
+    </route>
+</routes>

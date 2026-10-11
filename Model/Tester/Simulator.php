@@ -17,14 +17,17 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Phrase;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
+use Magento\Quote\Model\Quote\Address\RateRequestFactory;
 use Magento\Quote\Model\QuoteFactory;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CustomMethodInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
 use WillSco\EasyShippingRulesM2\Model\Carrier;
+use WillSco\EasyShippingRulesM2\Model\RateTable\RateFinder;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory as CarrierCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\CollectionFactory as CustomMethodCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod\CollectionFactory as ExistingMethodCollectionFactory;
@@ -58,6 +61,8 @@ class Simulator
      * @param CarrierCollectionFactory $carrierCollectionFactory
      * @param CustomMethodCollectionFactory $customMethodCollectionFactory
      * @param ExistingMethodCollectionFactory $existingMethodCollectionFactory
+     * @param RateFinder $rateFinder
+     * @param RateRequestFactory $rateRequestFactory
      */
     public function __construct(
         private readonly QuoteFactory $quoteFactory,
@@ -73,7 +78,9 @@ class Simulator
         private readonly RuleCollectionFactory $ruleCollectionFactory,
         private readonly CarrierCollectionFactory $carrierCollectionFactory,
         private readonly CustomMethodCollectionFactory $customMethodCollectionFactory,
-        private readonly ExistingMethodCollectionFactory $existingMethodCollectionFactory
+        private readonly ExistingMethodCollectionFactory $existingMethodCollectionFactory,
+        private readonly RateFinder $rateFinder,
+        private readonly RateRequestFactory $rateRequestFactory
     ) {
     }
 
@@ -312,28 +319,86 @@ class Simulator
         }
         $defaultRuleBlocks = $this->isBlockedByDefaultRule($address, $storeId);
 
+        $methods = $this->customMethodCollectionFactory->create()->setOrder('method_id', 'ASC')->getItems();
+        $tablePrices = $this->rateTablePrices($methods, $address);
+
         $result = [];
-        foreach ($this->customMethodCollectionFactory->create()->setOrder('method_id', 'ASC') as $method) {
-            $carrier = $carriers[(int)$method->getCarrierId()] ?? null;
-            $reason = $this->commonReason($method, $address, $storeId);
-            if ($reason === null && ($carrier === null || !$carrier->isActive())) {
-                $reason = __('Its carrier is missing or disabled.');
+        /** @var CustomMethodInterface $method */
+        foreach ($methods as $method) {
+            $isRateTable = $method->getCalculationType() === MethodInterface::CALCULATION_RATE_TABLE;
+            $activeCarriers = array_values(array_filter(
+                array_map(static fn (int $id) => $carriers[$id] ?? null, $method->getCarrierIds()),
+                static fn (?Carrier $carrier) => $carrier !== null && $carrier->isActive()
+            ));
+
+            $reason = $isRateTable && !$method->getRuleIds()
+                ? $this->statusReason($method, $storeId)
+                : $this->commonReason($method, $address, $storeId);
+            if ($reason === null && !$activeCarriers) {
+                $reason = __('None of its carriers is enabled.');
             }
             if ($reason === null && $defaultRuleBlocks) {
                 $reason = __('The Default Rule is not valid for this cart.');
             }
+            if ($reason === null && $isRateTable && !isset($tablePrices[(int)$method->getId()])) {
+                $reason = __('No line of its rate table matches this destination, weight and subtotal.');
+            }
+
+            $details = $reason ?? $this->validRuleText($method, $address);
+            if ($reason === null && $isRateTable) {
+                // Kept as phrases: they are rendered after the store emulation, in the admin locale.
+                $price = $tablePrices[(int)$method->getId()];
+                $details = $details === ''
+                    ? __('Rate table price: %1.', $price)
+                    : __('%1 Rate table price: %2.', $details, $price);
+            }
+
             $result[] = [
                 'id' => (int)$method->getId(),
                 'name' => (string)$method->getName(),
-                'carrier' => $carrier ? (string)$carrier->getName() : '',
-                'code' => $carrier ? $this->carrierCode->build((int)$carrier->getId()) . '_'
-                    . $this->carrierCode->buildMethod((int)$method->getId()) : '',
+                'carrier' => implode(', ', array_map(
+                    static fn (Carrier $carrier) => $carrier->getName(),
+                    $activeCarriers
+                )),
+                'code' => implode(', ', array_map(
+                    fn (Carrier $carrier) => $this->carrierCode->build((int)$carrier->getId()) . '_'
+                        . $this->carrierCode->buildMethod((int)$method->getId()),
+                    $activeCarriers
+                )),
                 'applied' => $reason === null,
-                'reason' => $reason ?? $this->validRuleText($method, $address),
+                'reason' => $details,
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Rate table prices of the cart, as RateProcessor finds them.
+     *
+     * @param CustomMethodInterface[] $methods
+     * @param Address $address
+     * @return array<int, float>
+     */
+    private function rateTablePrices(array $methods, Address $address): array
+    {
+        $methodIds = [];
+        foreach ($methods as $method) {
+            if ($method->getCalculationType() === MethodInterface::CALCULATION_RATE_TABLE) {
+                $methodIds[] = (int)$method->getId();
+            }
+        }
+        if (!$methodIds) {
+            return [];
+        }
+
+        $request = $this->rateRequestFactory->create();
+        $request->setDestCountryId($address->getCountryId());
+        $request->setDestPostcode($address->getPostcode());
+        $request->setPackageWeight($address->getWeight());
+        $request->setPackageValueWithDiscount($address->getBaseSubtotalWithDiscount());
+
+        return $this->rateFinder->findPrices($methodIds, $request);
     }
 
     /**
@@ -347,7 +412,10 @@ class Simulator
     {
         $result = [];
         /** @var ExistingMethodInterface $method */
-        foreach ($this->existingMethodCollectionFactory->create()->setOrder('method_id', 'ASC') as $method) {
+        $methods = $this->existingMethodCollectionFactory->create()
+            ->setOrder('sort_order', 'ASC')
+            ->setOrder('method_id', 'ASC');
+        foreach ($methods as $method) {
             $reason = $this->commonReason($method, $address, $storeId);
             $result[] = [
                 'id' => (int)$method->getId(),
@@ -372,18 +440,35 @@ class Simulator
      */
     private function commonReason(MethodInterface $method, Address $address, int $storeId): ?Phrase
     {
+        $reason = $this->statusReason($method, $storeId);
+        if ($reason !== null) {
+            return $reason;
+        }
+        if (!$method->getRuleIds()) {
+            return __('The method has no rules.');
+        }
+        if ($this->ruleValidator->getFirstValidRule($method->getRuleIds(), $address) === null) {
+            return __('None of its rules (%1) is valid for this cart.', implode(', ', $method->getRuleIds()));
+        }
+
+        return null;
+    }
+
+    /**
+     * Reason when the method is disabled or not in the store view, else null.
+     *
+     * @param MethodInterface $method
+     * @param int $storeId
+     * @return Phrase|null
+     */
+    private function statusReason(MethodInterface $method, int $storeId): ?Phrase
+    {
         if (!$method->isActive()) {
             return __('The method is disabled.');
         }
         $storeIds = $method->getStoreIds();
         if (!in_array(Store::DEFAULT_STORE_ID, $storeIds, true) && !in_array($storeId, $storeIds, true)) {
             return __('The method is not assigned to this store view.');
-        }
-        if (!$method->getRuleIds()) {
-            return __('The method has no rules.');
-        }
-        if ($this->ruleValidator->getFirstValidRule($this->sorted($method->getRuleIds()), $address) === null) {
-            return __('None of its rules (%1) is valid for this cart.', implode(', ', $method->getRuleIds()));
         }
 
         return null;
@@ -398,7 +483,7 @@ class Simulator
      */
     private function validRuleText(MethodInterface $method, Address $address): Phrase|string
     {
-        $rule = $this->ruleValidator->getFirstValidRule($this->sorted($method->getRuleIds()), $address);
+        $rule = $this->ruleValidator->getFirstValidRule($method->getRuleIds(), $address);
 
         return $rule ? __('Applied by rule #%1 "%2".', $rule->getId(), $rule->getName()) : '';
     }
@@ -412,7 +497,7 @@ class Simulator
      */
     private function existingMethodRuleText(ExistingMethodInterface $method, Address $address): Phrase|string
     {
-        $rule = $this->ruleValidator->getFirstValidRule($this->sorted($method->getRuleIds()), $address);
+        $rule = $this->ruleValidator->getFirstValidRule($method->getRuleIds(), $address);
         if ($rule === null) {
             return '';
         }
@@ -447,18 +532,5 @@ class Simulator
         );
 
         return $ruleId && $this->ruleValidator->isValid($ruleId, $address) === false;
-    }
-
-    /**
-     * Rule IDs in the order RateProcessor evaluates them.
-     *
-     * @param int[] $ruleIds
-     * @return int[]
-     */
-    private function sorted(array $ruleIds): array
-    {
-        sort($ruleIds);
-
-        return $ruleIds;
     }
 }

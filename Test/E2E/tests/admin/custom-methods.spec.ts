@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
     acceptModal,
     clickFormButton,
+    expectError,
     expectFieldError,
     expectSuccess,
     field,
@@ -29,7 +30,7 @@ test.describe('Custom Methods', () => {
         await page.locator('#add').click();
         await waitForAdmin(page);
         await fillField(page, 'name', `Express ${id}`);
-        await selectField(page, 'carrier_id', `Carrier ${id}`);
+        await selectField(page, 'carrier_ids', `Carrier ${id}`);
         await selectField(page, 'store_ids', 'All Store Views');
         await selectField(page, 'rule_ids', `Rule ${id}`);
         await selectField(page, 'calculation_type', 'Fixed (per item qty)');
@@ -50,9 +51,8 @@ test.describe('Custom Methods', () => {
         await fillField(page, 'name', `Express ${uid()}`);
         await field(page, 'store_ids').locator('select').selectOption([]);
         await clickFormButton(page, 'save');
-        await expectFieldError(page, 'carrier_id');
+        await expectFieldError(page, 'carrier_ids');
         await expectFieldError(page, 'store_ids');
-        await expectFieldError(page, 'rule_ids');
     });
 
     test('keeps rules and store views when edited', async ({ page }) => {
@@ -81,16 +81,49 @@ test.describe('Custom Methods', () => {
         await createRule(page, `Rule ${id}`);
         await createCustomMethod(page, { name: `Express ${id}`, carrier: `First ${id}`, rules: [`Rule ${id}`] });
 
-        await massAction(page, [gridRow(page, `Express ${id}`)], 'Change Carrier', `Second ${id}`);
+        await massAction(page, [gridRow(page, `Express ${id}`)], 'Set Carrier', `Second ${id}`);
         await waitForAdmin(page);
         await expectSuccess(page, 'A total of 1 record(s) have been updated.');
         await filterGrid(page, { name: `Express ${id}` });
         await expect(gridRow(page, `Express ${id}`)).toContainText(`Second ${id}`);
+        await expect(gridRow(page, `Express ${id}`)).not.toContainText(`First ${id}`);
 
         await massAction(page, [gridRow(page, `Express ${id}`)], 'Change Calculation Type', 'Percentage of subtotal');
         await waitForAdmin(page);
         await filterGrid(page, { name: `Express ${id}` });
         await expect(gridRow(page, `Express ${id}`)).toContainText('Percentage of subtotal');
+    });
+
+    test('offers a method under several carriers', async ({ page }) => {
+        const id = uid();
+        await createCarrier(page, `First ${id}`);
+        await createCarrier(page, `Second ${id}`);
+        await createRule(page, `Rule ${id}`);
+        await createCustomMethod(page, {
+            name: `Express ${id}`,
+            carrier: [`First ${id}`, `Second ${id}`],
+            rules: [`Rule ${id}`],
+        });
+
+        const row = gridRow(page, `Express ${id}`);
+        await expect(row).toContainText(`First ${id}`);
+        await expect(row).toContainText(`Second ${id}`);
+    });
+
+    test('requires rules except for rate tables', async ({ page }) => {
+        const id = uid();
+        await createCarrier(page, `Carrier ${id}`);
+
+        await openAdmin(page, 'easyshippingrules/custommethod/new/');
+        await fillField(page, 'name', `Express ${id}`);
+        await selectField(page, 'carrier_ids', `Carrier ${id}`);
+        await selectField(page, 'store_ids', 'All Store Views');
+        await saveForm(page);
+        await expectError(page, '"Rules" is required.');
+
+        await selectField(page, 'calculation_type', 'Rate table');
+        await saveForm(page);
+        await expectSuccess(page, 'The custom method has been saved.');
     });
 
     test('deletes a method', async ({ page }) => {

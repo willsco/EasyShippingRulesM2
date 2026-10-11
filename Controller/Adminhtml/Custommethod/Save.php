@@ -62,12 +62,12 @@ class Save extends Action implements HttpPostActionInterface
         $id = (int)($data[CustomMethodInterface::METHOD_ID] ?? 0);
         try {
             $method = $id ? $this->repository->getById($id) : $this->methodFactory->create();
-            $carrierId = (int)($data[CustomMethodInterface::CARRIER_ID] ?? 0);
-            if (!$carrierId) {
-                throw new LocalizedException(__('"%1" is required.', __('Carrier')));
+            $carrierIds = $this->toIdList($data[CustomMethodInterface::CARRIER_IDS] ?? []);
+            if (!$carrierIds) {
+                throw new LocalizedException(__('"%1" is required.', __('Carriers')));
             }
 
-            $method->setCarrierId($carrierId)
+            $method->setCarrierIds($carrierIds)
                 ->setName($this->toRequiredString($data[CustomMethodInterface::NAME] ?? '', 'Name'))
                 ->setIsActive((bool)($data[CustomMethodInterface::IS_ACTIVE] ?? true))
                 ->setCalculationType($this->toOption(
@@ -78,6 +78,11 @@ class Save extends Action implements HttpPostActionInterface
                 ->setAmount($this->toNullableFloat($data[CustomMethodInterface::AMOUNT] ?? null))
                 ->setStoreIds($this->toStoreIds($data[CustomMethodInterface::STORE_IDS] ?? []))
                 ->setRuleIds($this->toIdList($data[CustomMethodInterface::RULE_IDS] ?? []));
+            if (!$method->getRuleIds()
+                && $method->getCalculationType() !== CustomMethodInterface::CALCULATION_RATE_TABLE
+            ) {
+                throw new LocalizedException(__('"%1" is required.', __('Rules')));
+            }
 
             $this->repository->save($method);
             $this->messageManager->addSuccessMessage(__('The custom method has been saved.'));

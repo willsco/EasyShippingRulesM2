@@ -33,4 +33,25 @@ class ConditionTypes
             && class_exists($type)
             && is_subclass_of($type, AbstractCondition::class);
     }
+
+    /**
+     * Whether every node of a conditions tree (as built by asArray()) has an allowed type.
+     *
+     * @param array $node
+     * @return bool
+     */
+    public function isTreeAllowed(array $node): bool
+    {
+        if (!$this->isAllowed((string)($node['type'] ?? ''))) {
+            return false;
+        }
+
+        foreach ((array)($node['conditions'] ?? []) as $child) {
+            if (!is_array($child) || !$this->isTreeAllowed($child)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

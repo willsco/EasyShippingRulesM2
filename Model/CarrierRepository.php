@@ -9,8 +9,6 @@ namespace WillSco\EasyShippingRulesM2\Model;
 
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Api\SearchResultsInterface;
-use Magento\Framework\Api\SearchResultsInterfaceFactory;
 use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
@@ -18,6 +16,8 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Psr\Log\LoggerInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\CarrierInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CarrierSearchResultsInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CarrierSearchResultsInterfaceFactory;
 use WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier as CarrierResource;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory;
@@ -36,7 +36,7 @@ class CarrierRepository implements CarrierRepositoryInterface, ResetAfterRequest
      * @param CarrierFactory $carrierFactory
      * @param CollectionFactory $collectionFactory
      * @param CollectionProcessorInterface $collectionProcessor
-     * @param SearchResultsInterfaceFactory $searchResultsFactory
+     * @param CarrierSearchResultsInterfaceFactory $searchResultsFactory
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -44,7 +44,7 @@ class CarrierRepository implements CarrierRepositoryInterface, ResetAfterRequest
         private readonly CarrierFactory $carrierFactory,
         private readonly CollectionFactory $collectionFactory,
         private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly SearchResultsInterfaceFactory $searchResultsFactory,
+        private readonly CarrierSearchResultsInterfaceFactory $searchResultsFactory,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -102,7 +102,7 @@ class CarrierRepository implements CarrierRepositoryInterface, ResetAfterRequest
     /**
      * @inheritdoc
      */
-    public function getList(SearchCriteriaInterface $searchCriteria): SearchResultsInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): CarrierSearchResultsInterface
     {
         $collection = $this->collectionFactory->create();
         $this->collectionProcessor->process($searchCriteria, $collection);

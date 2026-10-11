@@ -44,4 +44,30 @@ class ShippingMethods implements OptionSourceInterface
 
         return $options;
     }
+
+    /**
+     * Labels by shipping method code.
+     *
+     * @return array<string, string>
+     */
+    public function getLabels(): array
+    {
+        $labels = [];
+        foreach ($this->toOptionArray() as $option) {
+            $labels[(string)$option['value']] = (string)$option['label'];
+        }
+
+        return $labels;
+    }
+
+    /**
+     * Codes that no active carrier offers (carrier disabled, removed or code renamed).
+     *
+     * @param string[] $codes
+     * @return string[]
+     */
+    public function getUnavailableCodes(array $codes): array
+    {
+        return array_values(array_diff($codes, array_keys($this->getLabels())));
+    }
 }

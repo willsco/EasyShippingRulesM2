@@ -191,6 +191,47 @@ class Rule extends AbstractModel implements RuleInterface
     /**
      * @inheritdoc
      */
+    public function getSortOrder(): int
+    {
+        return (int)$this->getData(self::SORT_ORDER);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setSortOrder(int $sortOrder): RuleInterface
+    {
+        return $this->setData(self::SORT_ORDER, $sortOrder);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getConditionsJson(): ?string
+    {
+        // The parent drops the serialized column once the conditions tree is built.
+        if ($this->hasData(self::CONDITIONS_SERIALIZED)) {
+            $value = $this->getData(self::CONDITIONS_SERIALIZED);
+
+            return $value === null || $value === '' ? null : (string)$value;
+        }
+
+        return $this->_conditions ? $this->serializer->serialize($this->getConditions()->asArray()) : null;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setConditionsJson(?string $conditionsJson): RuleInterface
+    {
+        $this->_conditions = null;
+
+        return $this->setData(self::CONDITIONS_SERIALIZED, $conditionsJson);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getCreatedAt(): ?string
     {
         return $this->getData(self::CREATED_AT);

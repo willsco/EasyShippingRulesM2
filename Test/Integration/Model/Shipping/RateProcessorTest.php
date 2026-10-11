@@ -14,6 +14,7 @@ use Magento\Catalog\Model\Product\Type;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Framework\App\Config\MutableScopeConfigInterface;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\ObjectManagerInterface;
 use Magento\OfflineShipping\Model\SalesRule\Rule as FreeShippingSource;
 use Magento\Quote\Model\Quote;
@@ -33,9 +34,13 @@ use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterfaceFactory;
 use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
 use WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface;
+use WillSco\EasyShippingRulesM2\Model\RateTable\Importer;
+use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\Collection as CarrierCollection;
+use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\Collection as CustomMethodCollection;
 use WillSco\EasyShippingRulesM2\Model\Rule;
 use WillSco\EasyShippingRulesM2\Model\Rule\Condition\Address;
 use WillSco\EasyShippingRulesM2\Model\Rule\Condition\Combine;
+use WillSco\EasyShippingRulesM2\Model\Rule\Condition\Customer;
 use WillSco\EasyShippingRulesM2\Model\Rule\Condition\CustomerGroup;
 use WillSco\EasyShippingRulesM2\Model\RuleFactory;
 use WillSco\EasyShippingRulesM2\Model\Shipping\Carrier as EsrCarrier;
@@ -131,6 +136,124 @@ class RateProcessorTest extends TestCase
         $rates = $this->collectRates($this->createQuote(self::RIO, 1));
 
         $this->assertSame(['flatrate_flatrate'], array_keys($rates));
+    }
+
+    public function testCustomMethodIsOfferedUnderEachOfItsEnabledCarriers(): void
+    {
+        $first = $this->createCarrier('First Carrier');
+        $second = $this->createCarrier('Second Carrier');
+        $disabled = $this->createCarrier('Disabled Carrier', false);
+        $rule = $this->createRule('Always', [], 9.0);
+        $method = $this->createCustomMethod([$first, $second, $disabled], 'Express', [(int)$rule->getId()]);
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 1));
+
+        $suffix = '_m' . $method->getId();
+        $this->assertSame('First Carrier', $rates['easyshippingrules' . $first->getId() . $suffix]['carrier']);
+        $this->assertSame('Second Carrier', $rates['easyshippingrules' . $second->getId() . $suffix]['carrier']);
+        $this->assertArrayNotHasKey('easyshippingrules' . $disabled->getId() . $suffix, $rates);
+        $this->assertCount(3, $rates, 'Two module rates and Flat Rate');
+    }
+
+    public function testRulePriorityChoosesWhichRuleGivesThePrice(): void
+    {
+        $carrier = $this->createCarrier('Our Delivery');
+        $older = $this->createRule('Older', [], 10.0, 5);
+        $preferred = $this->createRule('Preferred', [], 20.0, 1);
+        $method = $this->createCustomMethod($carrier, 'Express', [(int)$older->getId(), (int)$preferred->getId()]);
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 1));
+
+        $this->assertSame(20.0, $rates['easyshippingrules' . $carrier->getId() . '_m' . $method->getId()]['price']);
+    }
+
+    public function testExistingMethodsRunByPriorityAndCanDiscardTheRest(): void
+    {
+        $rule = $this->createRule('Always', []);
+        // Created first but runs last: the overwrite before it discards it.
+        $this->createExistingMethod(
+            ExistingMethodInterface::ACTION_SURCHARGE,
+            ['all'],
+            [(int)$rule->getId()],
+            10.0,
+            null,
+            2
+        );
+        $this->createExistingMethod(
+            ExistingMethodInterface::ACTION_OVERWRITE,
+            ['flatrate_flatrate'],
+            [(int)$rule->getId()],
+            3.0,
+            null,
+            1,
+            true
+        );
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 1));
+
+        $this->assertSame(3.0, $rates['flatrate_flatrate']['price']);
+    }
+
+    public function testRateTablePricesByPostcodeAndWeight(): void
+    {
+        $this->objectManager->get(Importer::class)->import(implode("\n", [
+            'carrier;method;country;postcode_from;postcode_to;weight_from;weight_to;price',
+            'Our Delivery;Table Express;BR;01000;05999;0;2;12,50',
+            'Our Delivery;Table Express;BR;01000;05999;2,001;30;19,90',
+            'Our Delivery;Table Express;BR;20000;28999;;;35',
+        ]));
+        $carrierId = $this->getCarrierId('Our Delivery');
+        $methodId = $this->getMethodId('Table Express');
+        $code = 'easyshippingrules' . $carrierId . '_m' . $methodId;
+
+        $this->assertSame(12.5, $this->collectRates($this->createQuote(self::SAO_PAULO, 2))[$code]['price']);
+        $this->assertSame(19.9, $this->collectRates($this->createQuote(self::SAO_PAULO, 3))[$code]['price']);
+        $this->assertSame(35.0, $this->collectRates($this->createQuote(self::RIO, 1))[$code]['price']);
+        $this->assertArrayNotHasKey($code, $this->collectRates($this->createQuote('30140-071', 1)), 'No line');
+    }
+
+    public function testRateTableImportReplacesRowsAndRejectsInvalidFiles(): void
+    {
+        $importer = $this->objectManager->get(Importer::class);
+        $summary = $importer->import("carrier,method,price\nOur Delivery,Flat Table,7.5\n");
+        $this->assertSame(['Flat Table'], $summary['created_methods']);
+        $this->assertSame(['Our Delivery'], $summary['created_carriers']);
+
+        try {
+            $importer->import("carrier,method,price\nOur Delivery,Flat Table,abc\n,Other,1\n");
+            $this->fail('An invalid file must not be imported.');
+        } catch (LocalizedException $e) {
+            $this->assertStringContainsString('Line 2', $e->getMessage());
+            $this->assertStringContainsString('Line 3', $e->getMessage());
+        }
+
+        $code = 'easyshippingrules' . $this->getCarrierId('Our Delivery') . '_m' . $this->getMethodId('Flat Table');
+        $this->assertSame(7.5, $this->collectRates($this->createQuote(self::RIO, 1))[$code]['price']);
+
+        $importer->import("carrier,method,price\nOur Delivery,Flat Table,0\n");
+        $this->assertSame(0.0, $this->collectRates($this->createQuote(self::RIO, 1))[$code]['price']);
+    }
+
+    /**
+     * @magentoDataFixture Magento/Customer/_files/customer.php
+     */
+    public function testCustomerAttributeConditionMatchesTheQuoteCustomer(): void
+    {
+        $carrier = $this->createCarrier('Our Delivery');
+        $johns = $this->createRule('Johns', [[
+            'type' => Customer::class,
+            'attribute' => 'firstname',
+            'operator' => '==',
+            'value' => 'John',
+        ]]);
+        $method = $this->createCustomMethod($carrier, 'For John', [(int)$johns->getId()]);
+        $code = 'easyshippingrules' . $carrier->getId() . '_m' . $method->getId();
+
+        $this->assertArrayNotHasKey($code, $this->collectRates($this->createQuote(self::RIO, 1)), 'Guest');
+
+        $quote = $this->createQuote(self::RIO, 1);
+        $quote->setCustomerId(1)->setCustomerIsGuest(false);
+        $this->assertArrayHasKey($code, $this->collectRates($quote));
     }
 
     public function testDefaultRuleBlocksCustomMethods(): void
@@ -342,6 +465,34 @@ class RateProcessorTest extends TestCase
     }
 
     /**
+     * ID of the carrier with the given name.
+     *
+     * @param string $name
+     * @return int
+     */
+    private function getCarrierId(string $name): int
+    {
+        return (int)$this->objectManager->create(CarrierCollection::class)
+            ->addFieldToFilter('name', $name)
+            ->getFirstItem()
+            ->getId();
+    }
+
+    /**
+     * ID of the custom method with the given name.
+     *
+     * @param string $name
+     * @return int
+     */
+    private function getMethodId(string $name): int
+    {
+        return (int)$this->objectManager->create(CustomMethodCollection::class)
+            ->addFieldToFilter('name', $name)
+            ->getFirstItem()
+            ->getId();
+    }
+
+    /**
      * Create a carrier.
      *
      * @param string $name
@@ -362,9 +513,10 @@ class RateProcessorTest extends TestCase
      * @param string $name
      * @param array $conditions child conditions (type, attribute, operator, value)
      * @param float|null $amount
+     * @param int $sortOrder
      * @return Rule
      */
-    private function createRule(string $name, array $conditions, ?float $amount = null): Rule
+    private function createRule(string $name, array $conditions, ?float $amount = null, int $sortOrder = 0): Rule
     {
         $post = ['1' => ['type' => Combine::class, 'aggregator' => 'all', 'value' => '1', 'new_child' => '']];
         foreach (array_values($conditions) as $index => $condition) {
@@ -373,7 +525,7 @@ class RateProcessorTest extends TestCase
 
         /** @var Rule $rule */
         $rule = $this->objectManager->get(RuleFactory::class)->create();
-        $rule->setName($name)->setIsActive(true)->setAmount($amount);
+        $rule->setName($name)->setIsActive(true)->setAmount($amount)->setSortOrder($sortOrder);
         $rule->loadPost(['conditions' => $post]);
 
         $this->objectManager->get(RuleRepositoryInterface::class)->save($rule);
@@ -395,7 +547,7 @@ class RateProcessorTest extends TestCase
     /**
      * Create an active custom method for all store views.
      *
-     * @param CarrierInterface $carrier
+     * @param CarrierInterface|CarrierInterface[] $carriers
      * @param string $name
      * @param int[] $ruleIds
      * @param string $calculationType
@@ -403,14 +555,18 @@ class RateProcessorTest extends TestCase
      * @return MethodInterface
      */
     private function createCustomMethod(
-        CarrierInterface $carrier,
+        CarrierInterface|array $carriers,
         string $name,
         array $ruleIds,
         string $calculationType = MethodInterface::CALCULATION_FIXED,
         ?float $amount = null
     ): MethodInterface {
+        $carrierIds = array_map(
+            static fn (CarrierInterface $carrier) => (int)$carrier->getId(),
+            is_array($carriers) ? $carriers : [$carriers]
+        );
         $method = $this->objectManager->get(CustomMethodInterfaceFactory::class)->create();
-        $method->setCarrierId((int)$carrier->getId())
+        $method->setCarrierIds($carrierIds)
             ->setName($name)
             ->setIsActive(true)
             ->setCalculationType($calculationType)
@@ -429,6 +585,8 @@ class RateProcessorTest extends TestCase
      * @param int[] $ruleIds
      * @param float|null $amount
      * @param string|null $methodTitle
+     * @param int $sortOrder
+     * @param bool $stopProcessing
      * @return void
      */
     private function createExistingMethod(
@@ -436,7 +594,9 @@ class RateProcessorTest extends TestCase
         array $shippingMethods,
         array $ruleIds,
         ?float $amount = null,
-        ?string $methodTitle = null
+        ?string $methodTitle = null,
+        int $sortOrder = 0,
+        bool $stopProcessing = false
     ): void {
         $method = $this->objectManager->get(ExistingMethodInterfaceFactory::class)->create();
         $method->setName('Test ' . $action)
@@ -445,6 +605,8 @@ class RateProcessorTest extends TestCase
             ->setCalculationType(MethodInterface::CALCULATION_FIXED)
             ->setAmount($amount)
             ->setMethodTitle($methodTitle)
+            ->setSortOrder($sortOrder)
+            ->setStopProcessing($stopProcessing)
             ->setShippingMethods($shippingMethods)
             ->setStoreIds([0])
             ->setRuleIds($ruleIds);

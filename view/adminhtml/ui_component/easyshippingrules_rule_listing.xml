@@ -95,6 +95,12 @@
                 <label translate="true">Status</label>
             </settings>
         </column>
+        <column name="sort_order" sortOrder="35">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Priority</label>
+            </settings>
+        </column>
         <column name="amount" sortOrder="40">
             <settings>
                 <filter>textRange</filter>

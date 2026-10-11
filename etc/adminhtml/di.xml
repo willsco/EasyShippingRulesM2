@@ -10,6 +10,7 @@
     <virtualType name="WillScoEsrExistingCalculationType" type="WillSco\EasyShippingRulesM2\Model\Source\CalculationType">
         <arguments>
             <argument name="withRatePercentage" xsi:type="boolean">true</argument>
+            <argument name="withRateTable" xsi:type="boolean">false</argument>
         </arguments>
     </virtualType>
     <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Existingmethod\Save">
@@ -56,7 +57,7 @@
     <virtualType name="WillScoEsrCarrierMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
         <arguments>
             <argument name="optionSource" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Carrier</argument>
-            <argument name="field" xsi:type="string">carrier_id</argument>
+            <argument name="field" xsi:type="string">carrier_ids</argument>
         </arguments>
     </virtualType>
     <virtualType name="WillScoEsrCalculationTypeMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
@@ -97,7 +98,7 @@
         <arguments>
             <argument name="allowedFields" xsi:type="array">
                 <item name="is_active" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</item>
-                <item name="carrier_id" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Carrier</item>
+                <item name="carrier_ids" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Carrier</item>
                 <item name="calculation_type" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\CalculationType</item>
             </argument>
         </arguments>

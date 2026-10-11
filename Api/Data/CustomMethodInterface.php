@@ -12,20 +12,20 @@ namespace WillSco\EasyShippingRulesM2\Api\Data;
  */
 interface CustomMethodInterface extends MethodInterface
 {
-    public const CARRIER_ID = 'carrier_id';
+    public const CARRIER_IDS = 'carrier_ids';
 
     /**
-     * Get carrier ID.
+     * Carriers the method is offered under; one rate per active carrier.
      *
-     * @return int|null
+     * @return int[]
      */
-    public function getCarrierId(): ?int;
+    public function getCarrierIds(): array;
 
     /**
-     * Set carrier ID.
+     * Set carrier IDs.
      *
-     * @param int|null $carrierId
+     * @param int[] $carrierIds
      * @return $this
      */
-    public function setCarrierId(?int $carrierId): self;
+    public function setCarrierIds(array $carrierIds): self;
 }

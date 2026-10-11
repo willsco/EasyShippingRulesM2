@@ -12,7 +12,7 @@ use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
 
 /**
- * Persists the store and rule links of a method.
+ * Persists the links of a method (store views, rules and, for custom methods, carriers).
  */
 abstract class AbstractMethod extends AbstractDb
 {
@@ -29,6 +29,19 @@ abstract class AbstractMethod extends AbstractDb
      * @return string
      */
     abstract public function getRuleLinkTable(): string;
+
+    /**
+     * Link tables by the data key that holds the linked IDs.
+     *
+     * @return array<string, array{table: string, column: string}>
+     */
+    public function getLinks(): array
+    {
+        return [
+            MethodInterface::STORE_IDS => ['table' => $this->getStoreLinkTable(), 'column' => 'store_id'],
+            MethodInterface::RULE_IDS => ['table' => $this->getRuleLinkTable(), 'column' => 'rule_id'],
+        ];
+    }
 
     /**
      * Empty form values must reach the decimal column as NULL ("use the rule amount").
@@ -52,8 +65,9 @@ abstract class AbstractMethod extends AbstractDb
     {
         $methodId = (int)$object->getId();
         if ($methodId) {
-            $object->setData(MethodInterface::STORE_IDS, $this->lookupStoreIds([$methodId])[$methodId] ?? []);
-            $object->setData(MethodInterface::RULE_IDS, $this->lookupRuleIds([$methodId])[$methodId] ?? []);
+            foreach ($this->lookupAllLinks([$methodId]) as $key => $ids) {
+                $object->setData($key, $ids[$methodId] ?? []);
+            }
         }
 
         return parent::_afterLoad($object);
@@ -68,46 +82,29 @@ abstract class AbstractMethod extends AbstractDb
     protected function _afterSave(AbstractModel $object)
     {
         $methodId = (int)$object->getId();
-        if ($object->hasData(MethodInterface::STORE_IDS)) {
-            $this->saveLinks(
-                $this->getStoreLinkTable(),
-                'store_id',
-                $methodId,
-                (array)$object->getData(MethodInterface::STORE_IDS)
-            );
-        }
-        if ($object->hasData(MethodInterface::RULE_IDS)) {
-            $this->saveLinks(
-                $this->getRuleLinkTable(),
-                'rule_id',
-                $methodId,
-                (array)$object->getData(MethodInterface::RULE_IDS)
-            );
+        foreach ($this->getLinks() as $key => $link) {
+            if ($object->hasData($key)) {
+                $this->saveLinks($link['table'], $link['column'], $methodId, (array)$object->getData($key));
+            }
         }
 
         return parent::_afterSave($object);
     }
 
     /**
-     * Lookup store IDs.
+     * Linked IDs of the given methods, for every link table.
      *
      * @param int[] $methodIds
-     * @return array<int, int[]> store IDs indexed by method ID
+     * @return array<string, array<int, int[]>> IDs by data key, then by method ID
      */
-    public function lookupStoreIds(array $methodIds): array
+    public function lookupAllLinks(array $methodIds): array
     {
-        return $this->lookupLinks($this->getStoreLinkTable(), 'store_id', $methodIds);
-    }
+        $result = [];
+        foreach ($this->getLinks() as $key => $link) {
+            $result[$key] = $this->lookupLinks($link['table'], $link['column'], $methodIds);
+        }
 
-    /**
-     * Lookup rule IDs.
-     *
-     * @param int[] $methodIds
-     * @return array<int, int[]> rule IDs indexed by method ID
-     */
-    public function lookupRuleIds(array $methodIds): array
-    {
-        return $this->lookupLinks($this->getRuleLinkTable(), 'rule_id', $methodIds);
+        return $result;
     }
 
     /**

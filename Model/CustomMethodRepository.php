@@ -9,18 +9,19 @@ namespace WillSco\EasyShippingRulesM2\Model;
 
 use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
 use Magento\Framework\Api\SearchCriteriaInterface;
-use Magento\Framework\Api\SearchResultsInterface;
-use Magento\Framework\Api\SearchResultsInterfaceFactory;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Psr\Log\LoggerInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\CustomMethodInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CustomMethodSearchResultsInterface;
+use WillSco\EasyShippingRulesM2\Api\Data\CustomMethodSearchResultsInterfaceFactory;
 use WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod as CustomMethodResource;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\CollectionFactory;
 
-class CustomMethodRepository implements CustomMethodRepositoryInterface
+class CustomMethodRepository implements CustomMethodRepositoryInterface, ResetAfterRequestInterface
 {
     /**
      * @var array<int, CustomMethodInterface>
@@ -34,7 +35,7 @@ class CustomMethodRepository implements CustomMethodRepositoryInterface
      * @param CustomMethodFactory $methodFactory
      * @param CollectionFactory $collectionFactory
      * @param CollectionProcessorInterface $collectionProcessor
-     * @param SearchResultsInterfaceFactory $searchResultsFactory
+     * @param CustomMethodSearchResultsInterfaceFactory $searchResultsFactory
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -42,9 +43,19 @@ class CustomMethodRepository implements CustomMethodRepositoryInterface
         private readonly CustomMethodFactory $methodFactory,
         private readonly CollectionFactory $collectionFactory,
         private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly SearchResultsInterfaceFactory $searchResultsFactory,
+        private readonly CustomMethodSearchResultsInterfaceFactory $searchResultsFactory,
         private readonly LoggerInterface $logger
     ) {
+    }
+
+    /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->instances = [];
     }
 
     /**
@@ -85,7 +96,7 @@ class CustomMethodRepository implements CustomMethodRepositoryInterface
     /**
      * @inheritdoc
      */
-    public function getList(SearchCriteriaInterface $searchCriteria): SearchResultsInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): CustomMethodSearchResultsInterface
     {
         $collection = $this->collectionFactory->create();
         $this->collectionProcessor->process($searchCriteria, $collection);

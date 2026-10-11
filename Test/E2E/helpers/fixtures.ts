@@ -95,11 +95,11 @@ export async function createRule(
 
 export async function createCustomMethod(
     page: Page,
-    options: { name: string; carrier: string; rules: string[]; calculation?: string; amount?: string }
+    options: { name: string; carrier: string | string[]; rules: string[]; calculation?: string; amount?: string }
 ): Promise<string> {
     await openAdmin(page, 'easyshippingrules/custommethod/new/');
     await fillField(page, 'name', options.name);
-    await selectField(page, 'carrier_id', options.carrier);
+    await selectField(page, 'carrier_ids', options.carrier);
     await selectField(page, 'store_ids', 'All Store Views');
     await selectField(page, 'rule_ids', options.rules);
     if (options.calculation) {

@@ -30,6 +30,10 @@ in the cart, where it is going and who is buying, all from the admin, without wr
 - Hide a method for regions it does not serve.
 - Rename a carrier or method title shown at checkout.
 
+**Keep shipping tables in a spreadsheet**
+- Price a method by postcode range, weight and subtotal, like Magento's Table Rates, and edit the
+  table in Excel or Google Sheets: export, change, import.
+
 **Check your setup before customers do**
 - The *Rule Tester* rates a sample cart and shows which rules are valid, which methods were added,
   changed or hidden, and why each method did or did not apply.
@@ -40,7 +44,8 @@ in the cart, where it is going and who is buying, all from the admin, without wr
 | --- | --- |
 | **Rule** | A set of conditions, built like a Cart Price Rule. A rule is either valid or not for the current cart. |
 | **Carrier** | A group of custom methods. Its name is the carrier title shown at checkout. |
-| **Custom Method** | A new shipping rate. It is offered when **at least one** of its rules is valid. |
+| **Custom Method** | A new shipping rate, offered under one or more carriers. It is offered when **at least one** of its rules is valid, or, for the *Rate table* calculation type, when a line of its rate table matches. |
+| **Rate Table** | Lines of postcode, weight and subtotal ranges with a price, edited as a spreadsheet. |
 | **Existing Method** | An action on rates returned by other carriers: overwrite, discount, surcharge, hide or rename. It runs when **at least one** of its rules is valid. |
 
 Rules are evaluated after all carriers have returned their rates, so they apply wherever Magento
@@ -102,6 +107,7 @@ Example: free "Express Delivery" for orders of $200 or more in São Paulo city
 | --- | --- |
 | Enabled | Disabled rules are never valid. |
 | Rule Name / Description | For your reference. |
+| Priority | When several rules of a method are valid, the lowest number gives the price (ties: lowest ID). |
 | Conditions | When the rule is valid. Leave empty to make the rule always valid. |
 | Price / Percentage | Used by methods that have no price of their own. See [How prices are calculated](#how-prices-are-calculated). |
 
@@ -145,11 +151,11 @@ and row total are always available.
 | --- | --- |
 | Enabled | |
 | Name | Method title at checkout. |
-| Carrier | Carrier the method is shown under. |
+| Carriers | The method is offered once under each selected (enabled) carrier. |
 | Store View | Where the method is available. |
-| Rules | The method is offered when at least one of these rules is valid. |
-| Calculation Type | *Fixed (whole cart)*, *Fixed (per item qty)* or *Percentage of subtotal*. |
-| Price / Percentage | Leave empty to use the value of the rule. `0` means free. |
+| Rules | The method is offered when at least one of these rules is valid. Optional for *Rate table*. |
+| Calculation Type | *Fixed (whole cart)*, *Fixed (per item qty)*, *Percentage of subtotal* or *Rate table*. |
+| Price / Percentage | Leave empty to use the value of the rule. `0` means free. Not used by *Rate table*. |
 
 Custom methods cost `0` when a Cart Price Rule grants free shipping to the shipment, as Table Rates and
 the online carriers do.
@@ -162,14 +168,49 @@ the online carriers do.
 | Name | Internal name, not shown to customers. |
 | Store View | Where the action applies. |
 | Rules | The action applies when at least one of these rules is valid. |
-| Shipping Methods | Methods to change, or *All Shipping Methods* (including custom methods). |
+| Shipping Methods | Methods to change, or *All Shipping Methods* (including custom methods). Only methods of enabled carriers can be saved; the grid flags targets that are no longer available. |
 | Action | *Overwrite price*, *Discount* (subtract, never below zero), *Surcharge* (add) or *Hide*. |
 | Calculation Type | As for custom methods, plus *Percentage of rate* (of the original price). |
 | Price / Percentage | Leave empty to use the value of the rule. *Overwrite price* requires it unless every linked rule has a value; if no value is found at checkout, the rate keeps its price. |
 | Carrier Title / Method Title | Optional. Replace the titles shown at checkout. |
+| Priority | Existing methods run from the lowest number to the highest (ties: lowest ID). |
+| Discard Subsequent Existing Methods | When this method changes a rate, the existing methods after it leave that rate alone. |
 
-Several existing methods can apply to the same rate. They run in ID order, each one starting from the
-result of the previous one.
+Several existing methods can apply to the same rate. They run by priority, each one starting from the
+result of the previous one, until one with *Discard Subsequent Existing Methods* changes it.
+
+### Rate Tables
+
+*Stores > Easy Shipping Rules > Rate Tables*
+
+Export the rate tables as CSV, edit them in a spreadsheet and import the file back. Choose the
+spreadsheet program on export: Excel in Portuguese uses `;` and decimal comma, Google Sheets and Excel
+in English use `,` and decimal point. Import reads both, and files saved by Excel as plain "CSV".
+
+| Column | Content |
+| --- | --- |
+| `carrier` | Carrier name; several carriers separated by `\|`. Created when missing. |
+| `method` | Custom method name. Created when missing (enabled, all store views, no rules, *Rate table*). |
+| `country` | Two-letter country code (`BR`). Empty: any country. |
+| `postcode_from`, `postcode_to` | Postcode range, inclusive. A shorter number is a prefix: `01000` to `05999` covers 01000-000 to 05999-999. |
+| `weight_from`, `weight_to` | Cart weight range, inclusive. |
+| `subtotal_from`, `subtotal_to` | Subtotal after discounts, inclusive. |
+| `price` | Shipping price; `0` is free. |
+
+Empty range cells mean "no limit". Portuguese headers also work (`transportadora`, `metodo`, `pais`,
+`cep_de`, `cep_ate`, `peso_de`, `peso_ate`, `subtotal_de`, `subtotal_ate`, `preco`).
+
+```csv
+carrier;method;country;postcode_from;postcode_to;weight_from;weight_to;subtotal_from;subtotal_to;price
+Our Delivery;Express;BR;01000;05999;0;5;;;12,90
+Our Delivery;Express;BR;01000;05999;5,001;30;;;19,90
+Our Delivery;Economy;BR;20000;28999;;;0;199,99;15
+Our Delivery;Economy;BR;20000;28999;;;200;;0
+```
+
+The first matching line of a method, from top to bottom, sets its price; when no line matches, the
+method is not offered. Importing replaces the whole table of each method in the file and leaves the
+other methods alone. If any line is wrong, nothing is imported and the errors are listed by line.
 
 ### Rule Tester
 
@@ -182,7 +223,8 @@ shipping address) and click *Run Test*. Nothing is saved. The result shows:
   or *Hidden*;
 - **Rules**: whether each rule is valid for that cart;
 - **Custom Methods** and **Existing Methods**: whether each one applied, and the reason when it did
-  not (disabled, other store view, no valid rule, carrier disabled, Default Rule not valid).
+  not (disabled, other store view, no valid rule, carriers disabled, Default Rule not valid, no
+  matching rate table line).
 
 The products must exist and be salable in the chosen store view. *Customer Email* is shown only to
 admin users who may manage customers (*Customers > All Customers*), since the lookup tells whether an
@@ -205,7 +247,8 @@ store.
 ## How prices are calculated
 
 1. **Amount**: the *Price / Percentage* of the method. If it is empty, the *Price / Percentage* of
-   the first valid rule (lowest ID) is used instead. If neither is set, the amount is 0.
+   the first valid rule (by priority, then lowest ID) is used instead. If neither is set, the amount
+   is 0. *Rate table* methods take the price of their first matching table line instead.
 2. **Price**: the amount according to the *Calculation Type*:
 
    | Calculation Type | Price |
@@ -267,6 +310,34 @@ It then appears in the rule editor as *Programmatic Condition is valid / is not 
 | `Api\ExistingMethodRepositoryInterface` | `Api\Data\ExistingMethodInterface` |
 
 All repositories provide `save`, `getById`, `getList(SearchCriteria)`, `delete` and `deleteById`.
+Rule conditions are read and written as JSON with `getConditionsJson()` / `setConditionsJson()`;
+on save, only this module's condition types are accepted.
+
+### REST API
+
+The repositories are exposed under `/V1/easyshippingrules/`, with the admin permissions of the
+matching screen (*Carriers*, *Rules*, *Custom Methods*, *Existing Methods*):
+
+| Method | URL | Action |
+| --- | --- | --- |
+| `GET` | `/V1/easyshippingrules/{entity}?searchCriteria[...]` | list |
+| `GET` | `/V1/easyshippingrules/{entity}/{id}` | get one |
+| `POST` | `/V1/easyshippingrules/{entity}` | create |
+| `PUT` | `/V1/easyshippingrules/{entity}/{id}` | update |
+| `DELETE` | `/V1/easyshippingrules/{entity}/{id}` | delete |
+
+`{entity}` is `carriers`, `rules`, `custom-methods` or `existing-methods`. The request body wraps the
+entity in its parameter name (`carrier`, `rule` or `method`). As in Magento's own APIs, the enabled
+flag is `active`:
+
+```bash
+curl -X POST https://shop.example/rest/V1/easyshippingrules/carriers \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"carrier": {"name": "Our Delivery", "active": true, "sort_order": 10}}'
+```
+
+Custom methods take `carrier_ids`, `store_ids` and `rule_ids` as lists of IDs; rules take their
+conditions as a JSON string in `conditions_json` (export one rule with `GET` to see the format).
 Models dispatch the standard save and delete events with the prefixes `willsco_esr_carrier`,
 `willsco_esr_rule`, `willsco_esr_custom_method` and `willsco_esr_existing_method`
 (e.g. `willsco_esr_rule_save_after`).
@@ -286,6 +357,11 @@ Custom method rates use the carrier code `easyshippingrules{carrierId}` and the 
 | `willsco_esr_existing_method` | existing methods (target shipping methods stored as JSON) |
 | `willsco_esr_custom_method_store`, `willsco_esr_existing_method_store` | store view links |
 | `willsco_esr_custom_method_rule`, `willsco_esr_existing_method_rule` | rule links |
+| `willsco_esr_custom_method_carrier` | carrier links of custom methods |
+| `willsco_esr_rate_table` | rate table lines of *Rate table* methods |
+
+`willsco_esr_custom_method.carrier_id` is no longer used: on upgrade its values are copied to
+`willsco_esr_custom_method_carrier`. The column will be dropped in a later version.
 
 ### Tests
 

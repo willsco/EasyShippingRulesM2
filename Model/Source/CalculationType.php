@@ -16,9 +16,11 @@ class CalculationType implements OptionSourceInterface
      * Initialize dependencies.
      *
      * @param bool $withRatePercentage also offer "percentage of the original rate" (existing methods)
+     * @param bool $withRateTable also offer "rate table" (custom methods)
      */
     public function __construct(
-        private readonly bool $withRatePercentage = false
+        private readonly bool $withRatePercentage = false,
+        private readonly bool $withRateTable = true
     ) {
     }
 
@@ -34,6 +36,9 @@ class CalculationType implements OptionSourceInterface
         ];
         if ($this->withRatePercentage) {
             $options[] = ['value' => MethodInterface::CALCULATION_PERCENT_RATE, 'label' => __('Percentage of rate')];
+        }
+        if ($this->withRateTable) {
+            $options[] = ['value' => MethodInterface::CALCULATION_RATE_TABLE, 'label' => __('Rate table')];
         }
 
         return $options;

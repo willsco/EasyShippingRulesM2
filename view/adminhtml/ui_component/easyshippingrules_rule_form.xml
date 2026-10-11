@@ -109,6 +109,23 @@
                 <dataScope>description</dataScope>
             </settings>
         </field>
+        <field name="sort_order" sortOrder="40" formElement="input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                    <item name="default" xsi:type="number">0</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Priority</label>
+                <dataScope>sort_order</dataScope>
+                <notice translate="true">When several rules of a method are valid, the one with the lowest priority number gives the price (ties: the oldest rule).</notice>
+            </settings>
+        </field>
     </fieldset>
     <fieldset name="conditions" sortOrder="20">
         <settings>

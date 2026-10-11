@@ -98,7 +98,7 @@
                 <notice translate="true">Shown as the shipping method title at checkout.</notice>
             </settings>
         </field>
-        <field name="carrier_id" sortOrder="30" formElement="select">
+        <field name="carrier_ids" sortOrder="30" formElement="multiselect">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="source" xsi:type="string">custom_method</item>
@@ -109,16 +109,16 @@
                     <rule name="required-entry" xsi:type="boolean">true</rule>
                 </validation>
                 <dataType>text</dataType>
-                <label translate="true">Carrier</label>
-                <dataScope>carrier_id</dataScope>
+                <label translate="true">Carriers</label>
+                <dataScope>carrier_ids</dataScope>
+                <notice translate="true">The method is offered once under each selected carrier.</notice>
             </settings>
             <formElements>
-                <select>
+                <multiselect>
                     <settings>
                         <options class="WillSco\EasyShippingRulesM2\Model\Source\Carrier"/>
-                        <caption translate="true">-- Please Select --</caption>
                     </settings>
-                </select>
+                </multiselect>
             </formElements>
         </field>
         <field name="store_ids" sortOrder="40" formElement="multiselect">
@@ -151,13 +151,10 @@
                 </item>
             </argument>
             <settings>
-                <validation>
-                    <rule name="required-entry" xsi:type="boolean">true</rule>
-                </validation>
                 <dataType>text</dataType>
                 <label translate="true">Rules</label>
                 <dataScope>rule_ids</dataScope>
-                <notice translate="true">The method is offered when at least one of these rules is valid.</notice>
+                <notice translate="true">The method is offered when at least one of these rules is valid. Required, except for the "Rate table" calculation type.</notice>
             </settings>
             <formElements>
                 <multiselect>
@@ -209,7 +206,7 @@
                 <dataType>text</dataType>
                 <label translate="true">Price / Percentage</label>
                 <dataScope>amount</dataScope>
-                <notice translate="true">Leave empty to use the Price / Percentage of the first valid rule.</notice>
+                <notice translate="true">Leave empty to use the Price / Percentage of the first valid rule. Not used by the "Rate table" calculation type: see Easy Shipping Rules > Rate Tables.</notice>
             </settings>
         </field>
     </fieldset>

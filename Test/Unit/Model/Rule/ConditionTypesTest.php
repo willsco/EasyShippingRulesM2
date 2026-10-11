@@ -38,4 +38,23 @@ class ConditionTypesTest extends TestCase
             'empty' => ['', false],
         ];
     }
+
+    public function testTreeIsAllowedOnlyWhenEveryNodeIs(): void
+    {
+        $tree = [
+            'type' => Combine::class,
+            'conditions' => [
+                ['type' => Address::class, 'attribute' => 'postcode'],
+                ['type' => Found::class, 'conditions' => [['type' => Address::class]]],
+            ],
+        ];
+        $types = new ConditionTypes();
+
+        $this->assertTrue($types->isTreeAllowed($tree));
+
+        $tree['conditions'][1]['conditions'][] = ['type' => 'Magento\\SalesRule\\Model\\Rule\\Condition\\Address'];
+        $this->assertFalse($types->isTreeAllowed($tree), 'Nested foreign type');
+        $this->assertFalse($types->isTreeAllowed(['conditions' => []]), 'Root without type');
+        $this->assertFalse($types->isTreeAllowed(['type' => Combine::class, 'conditions' => ['x']]), 'Non-array child');
+    }
 }

@@ -140,7 +140,7 @@ class RuleValidator implements ResetAfterRequestInterface
     }
 
     /**
-     * First rule, in the given order, that is valid for the address.
+     * First valid rule by priority (lowest sort order, then lowest ID).
      *
      * @param int[] $ruleIds
      * @param AbstractModel $address
@@ -148,13 +148,33 @@ class RuleValidator implements ResetAfterRequestInterface
      */
     public function getFirstValidRule(array $ruleIds, AbstractModel $address): ?Rule
     {
-        foreach ($ruleIds as $ruleId) {
-            if ($this->isValid((int)$ruleId, $address)) {
-                return $this->getActiveRule((int)$ruleId);
+        foreach ($this->sortByPriority($ruleIds) as $ruleId) {
+            if ($this->isValid($ruleId, $address)) {
+                return $this->getActiveRule($ruleId);
             }
         }
 
         return null;
+    }
+
+    /**
+     * Rule IDs by priority; rules that are not active go last.
+     *
+     * @param int[] $ruleIds
+     * @return int[]
+     */
+    public function sortByPriority(array $ruleIds): array
+    {
+        $ruleIds = array_map('intval', $ruleIds);
+        usort($ruleIds, function (int $a, int $b): int {
+            $ruleA = $this->getActiveRule($a);
+            $ruleB = $this->getActiveRule($b);
+
+            return [$ruleA ? $ruleA->getSortOrder() : PHP_INT_MAX, $a]
+                <=> [$ruleB ? $ruleB->getSortOrder() : PHP_INT_MAX, $b];
+        });
+
+        return $ruleIds;
     }
 
     /**
