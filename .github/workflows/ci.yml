@@ -15,7 +15,7 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.2'
           tools: composer:v2
           coverage: none
 
@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.1', '8.2', '8.3']
+        php: ['8.2', '8.3']
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,3 +76,92 @@ jobs:
         run: >
           "$RUNNER_TEMP/magento/vendor/bin/phpunit" --bootstrap "$RUNNER_TEMP/magento/bootstrap.php"
           module/Test/Unit
+
+  integration-tests:
+    name: Integration tests (Magento 2.4.7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      db:
+        image: mariadb:10.6
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: magento_integration_tests
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+      search:
+        image: opensearchproject/opensearch:2.12.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports: ['9200:9200']
+        options: >-
+          --health-cmd="curl -fs http://localhost:9200/_cluster/health"
+          --health-interval=10s --health-timeout=5s --health-retries=30
+    env:
+      MAGENTO_VERSION: 2.4.7-p10
+      COMPOSER_MEMORY_LIMIT: -1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: module
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: bcmath, gd, intl, pdo_mysql, soap, sockets, xsl, zip
+          ini-values: memory_limit=4G
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-${{ env.MAGENTO_VERSION }}
+
+      # Same Mage-OS mirror as the E2E environment, so no repo.magento.com keys are needed.
+      - name: Install Magento ${{ env.MAGENTO_VERSION }}
+        working-directory: ${{ runner.temp }}
+        run: |
+          composer create-project --no-install --no-interaction \
+            --repository-url=https://mirror.mage-os.org/ "magento/project-community-edition:$MAGENTO_VERSION" magento
+          cd magento
+          composer config --unset repositories.0 || true
+          composer config repositories.mageos composer https://mirror.mage-os.org/
+          composer config --no-plugins allow-plugins true
+          # Test environment only: older patch releases have published advisories.
+          php -r '$f = "composer.json"; $j = json_decode(file_get_contents($f), true);
+              $j["config"]["policy"]["advisories"]["block"] = false; $j["config"]["audit"]["block-insecure"] = false;
+              file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
+          composer install --no-interaction --no-progress
+          mkdir -p app/code/WillSco
+          cp -a "$GITHUB_WORKSPACE/module" app/code/WillSco/EasyShippingRulesM2
+
+      # The test framework installs Magento with the module into the test database on the first run.
+      - name: PHPUnit
+        working-directory: ${{ runner.temp }}/magento/dev/tests/integration
+        run: |
+          cat > etc/install-config-mysql.php <<'PHP'
+          <?php
+          return [
+              'db-host' => '127.0.0.1',
+              'db-user' => 'root',
+              'db-password' => 'root',
+              'db-name' => 'magento_integration_tests',
+              'db-prefix' => '',
+              'backend-frontname' => 'backend',
+              'search-engine' => 'opensearch',
+              'opensearch-host' => '127.0.0.1',
+              'opensearch-port' => 9200,
+              'admin-user' => \Magento\TestFramework\Bootstrap::ADMIN_NAME,
+              'admin-password' => \Magento\TestFramework\Bootstrap::ADMIN_PASSWORD,
+              'admin-email' => \Magento\TestFramework\Bootstrap::ADMIN_EMAIL,
+              'admin-firstname' => \Magento\TestFramework\Bootstrap::ADMIN_FIRSTNAME,
+              'admin-lastname' => \Magento\TestFramework\Bootstrap::ADMIN_LASTNAME,
+          ];
+          PHP
+          ../../../vendor/bin/phpunit -c phpunit.xml.dist ../../../app/code/WillSco/EasyShippingRulesM2/Test/Integration

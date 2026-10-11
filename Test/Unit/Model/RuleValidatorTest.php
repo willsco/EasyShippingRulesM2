@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace WillSco\EasyShippingRulesM2\Test\Unit\Model;
 
+use Magento\Framework\Model\AbstractModel;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\Collection;
@@ -74,6 +75,49 @@ class RuleValidatorTest extends TestCase
         $this->collectionFactory->expects($this->never())->method('create');
 
         $this->assertNull($this->validator->runWithActiveRules([], fn () => $this->validator->getActiveRule(1)));
+    }
+
+    public function testMemoizedRunEvaluatesEachRuleOncePerAddress(): void
+    {
+        $collection = $this->collection([1]);
+        $collection->method('addActiveFilter')->willReturnSelf();
+        $this->collectionFactory->method('create')->willReturn($collection);
+        $rule = $this->validator->getActiveRule(1);
+        $rule->expects($this->exactly(3))->method('validate')->willReturn(true);
+        $address = $this->createMock(AbstractModel::class);
+        $otherAddress = $this->createMock(AbstractModel::class);
+
+        $this->validator->runMemoized(function () use ($address, $otherAddress): void {
+            $this->assertTrue($this->validator->isValid(1, $address));
+            $this->assertTrue($this->validator->isValid(1, $address));
+            $this->assertTrue($this->validator->isValid(1, $otherAddress));
+        });
+        $this->validator->isValid(1, $address);
+    }
+
+    public function testResultsReachedThroughACycleAreNotMemoized(): void
+    {
+        $collection = $this->collection([1, 2]);
+        $collection->method('addActiveFilter')->willReturnSelf();
+        $this->collectionFactory->method('create')->willReturn($collection);
+        $address = $this->createMock(AbstractModel::class);
+        // Rule 1 is valid when rule 2 is not; rule 2 is valid when rule 1 is. Validating rule 1 first
+        // sees rule 2 as not valid, while rule 2 on its own is valid.
+        $this->validator->getActiveRule(1)->method('validate')
+            ->willReturnCallback(fn ($model) => !$this->validator->isValid(2, $model));
+        $this->validator->getActiveRule(2)->method('validate')
+            ->willReturnCallback(fn ($model) => (bool)$this->validator->isValid(1, $model));
+
+        $results = $this->validator->runMemoized(fn () => [
+            $this->validator->isValid(1, $address),
+            $this->validator->isValid(2, $address),
+        ]);
+
+        $this->assertSame(
+            [$this->validator->isValid(1, $address), $this->validator->isValid(2, $address)],
+            $results,
+            'Same results as without memoization'
+        );
     }
 
     /**

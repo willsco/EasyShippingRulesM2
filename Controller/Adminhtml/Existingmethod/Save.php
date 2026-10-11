@@ -17,6 +17,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterfaceFactory;
 use WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface;
+use WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Controller\Adminhtml\FormDataTrait;
 use WillSco\EasyShippingRulesM2\Model\Source\ActionType;
 use WillSco\EasyShippingRulesM2\Model\Source\CalculationType;
@@ -37,6 +38,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param DataPersistorInterface $dataPersistor
      * @param ActionType $actionTypeSource
      * @param CalculationType $calculationTypeSource configured with rate percentage in di.xml
+     * @param RuleRepositoryInterface $ruleRepository
      */
     public function __construct(
         Context $context,
@@ -44,7 +46,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly ExistingMethodInterfaceFactory $methodFactory,
         private readonly DataPersistorInterface $dataPersistor,
         private readonly ActionType $actionTypeSource,
-        private readonly CalculationType $calculationTypeSource
+        private readonly CalculationType $calculationTypeSource,
+        private readonly RuleRepositoryInterface $ruleRepository
     ) {
         parent::__construct($context);
     }
@@ -91,6 +94,7 @@ class Save extends Action implements HttpPostActionInterface
                 ->setShippingMethods($shippingMethods)
                 ->setStoreIds($this->toStoreIds($data[ExistingMethodInterface::STORE_IDS] ?? []))
                 ->setRuleIds($this->toIdList($data[ExistingMethodInterface::RULE_IDS] ?? []));
+            $this->validateOverwriteAmount($method);
 
             $this->repository->save($method);
             $this->messageManager->addSuccessMessage(__('The existing method has been saved.'));
@@ -116,5 +120,36 @@ class Save extends Action implements HttpPostActionInterface
         $this->dataPersistor->set(self::PERSISTOR_KEY, $data);
 
         return $id ? $redirect->setPath('*/*/edit', ['id' => $id]) : $redirect->setPath('*/*/new');
+    }
+
+    /**
+     * "Overwrite price" needs a value whichever rule wins, or the rate would become free.
+     *
+     * @param ExistingMethodInterface $method
+     * @return void
+     * @throws LocalizedException
+     */
+    private function validateOverwriteAmount(ExistingMethodInterface $method): void
+    {
+        if ($method->getActionType() !== ExistingMethodInterface::ACTION_OVERWRITE || $method->getAmount() !== null) {
+            return;
+        }
+
+        foreach ($method->getRuleIds() as $ruleId) {
+            try {
+                $rule = $this->ruleRepository->getById($ruleId);
+            } catch (NoSuchEntityException $e) {
+                continue;
+            }
+            if ($rule->getAmount() === null) {
+                throw new LocalizedException(__(
+                    'Set a "%1" for "%2": rule #%3 "%4" has no value.',
+                    __('Price / Percentage'),
+                    __('Overwrite price'),
+                    $ruleId,
+                    $rule->getName()
+                ));
+            }
+        }
     }
 }

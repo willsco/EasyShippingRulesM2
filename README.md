@@ -49,8 +49,8 @@ GraphQL APIs.
 
 ## Requirements
 
-- Magento Open Source or Adobe Commerce 2.4.4 or later
-- PHP 8.1, 8.2 or 8.3
+- Magento Open Source or Adobe Commerce 2.4.7 or later
+- PHP 8.2 or 8.3
 
 ## Installation
 
@@ -151,7 +151,8 @@ and row total are always available.
 | Calculation Type | *Fixed (whole cart)*, *Fixed (per item qty)* or *Percentage of subtotal*. |
 | Price / Percentage | Leave empty to use the value of the rule. `0` means free. |
 
-Like Magento's own carriers, custom methods cost `0` when a Cart Price Rule grants free shipping.
+Custom methods cost `0` when a Cart Price Rule grants free shipping to the shipment, as Table Rates and
+the online carriers do.
 
 ### Existing Methods
 
@@ -164,7 +165,7 @@ Like Magento's own carriers, custom methods cost `0` when a Cart Price Rule gran
 | Shipping Methods | Methods to change, or *All Shipping Methods* (including custom methods). |
 | Action | *Overwrite price*, *Discount* (subtract, never below zero), *Surcharge* (add) or *Hide*. |
 | Calculation Type | As for custom methods, plus *Percentage of rate* (of the original price). |
-| Price / Percentage | Leave empty to use the value of the rule. |
+| Price / Percentage | Leave empty to use the value of the rule. *Overwrite price* requires it unless every linked rule has a value; if no value is found at checkout, the rate keeps its price. |
 | Carrier Title / Method Title | Optional. Replace the titles shown at checkout. |
 
 Several existing methods can apply to the same rate. They run in ID order, each one starting from the
@@ -302,8 +303,8 @@ The integration tests rate real quotes against Flat Rate and the module's carrie
 End-to-end browser tests (Playwright) cover every admin screen and a storefront checkout. They run
 against Magento in Docker with one command; see [Test/E2E/README.md](Test/E2E/README.md).
 
-GitHub Actions run the Magento Coding Standard and the unit tests on PHP 8.1, 8.2 and 8.3
-(`.github/workflows/ci.yml`) and the end-to-end suite (`.github/workflows/e2e.yml`). The `Test/E2E`
+GitHub Actions run the Magento Coding Standard, the unit tests on PHP 8.2 and 8.3, the integration
+tests against Magento 2.4.7 (`.github/workflows/ci.yml`) and the end-to-end suite (`.github/workflows/e2e.yml`). The `Test/E2E`
 folder and the workflows are excluded from the distributed package.
 
 ## Troubleshooting

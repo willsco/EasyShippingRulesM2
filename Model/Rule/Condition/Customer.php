@@ -13,13 +13,14 @@ use Magento\Customer\Model\ResourceModel\Customer as CustomerResource;
 use Magento\Eav\Model\Config as EavConfig;
 use Magento\Framework\DataObject;
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Rule\Model\Condition\AbstractCondition;
 use Magento\Rule\Model\Condition\Context;
 
 /**
  * Condition on an attribute of the customer that owns the quote.
  */
-class Customer extends AbstractCondition
+class Customer extends AbstractCondition implements ResetAfterRequestInterface
 {
     use BetweenOperatorTrait;
 
@@ -46,6 +47,16 @@ class Customer extends AbstractCondition
     ) {
         parent::__construct($context, $data);
         $this->setType(self::class);
+    }
+
+    /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->customers = [];
     }
 
     /**

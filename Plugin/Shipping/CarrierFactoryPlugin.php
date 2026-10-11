@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace WillSco\EasyShippingRulesM2\Plugin\Shipping;
 
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Shipping\Model\CarrierFactory;
 use WillSco\EasyShippingRulesM2\Model\Shipping\Carrier;
 use WillSco\EasyShippingRulesM2\Model\Shipping\CarrierCode;
@@ -18,7 +19,7 @@ use WillSco\EasyShippingRulesM2\Model\Shipping\CarrierFactory as EsrCarrierFacto
  * Without it Magento drops custom method rates when grouping them and cannot load
  * the carrier of orders placed with them.
  */
-class CarrierFactoryPlugin
+class CarrierFactoryPlugin implements ResetAfterRequestInterface
 {
     /**
      * @var array<string, Carrier>
@@ -35,6 +36,16 @@ class CarrierFactoryPlugin
         private readonly EsrCarrierFactory $carrierFactory,
         private readonly CarrierCode $carrierCode
     ) {
+    }
+
+    /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->instances = [];
     }
 
     /**

@@ -92,7 +92,6 @@ class RateProcessorTest extends TestCase
         $rates = $this->collectRates($this->createQuote(self::RIO, 2));
 
         $this->assertSame(0.0, $rates['easyshippingrules' . $carrier->getId() . '_m' . $method->getId()]['price']);
-        $this->assertSame(0.0, $rates['flatrate_flatrate']['price'], 'Native carriers behave the same way');
     }
 
     public function testCustomMethodIsNotOfferedWhenNoRuleIsValid(): void
@@ -176,6 +175,33 @@ class RateProcessorTest extends TestCase
         $rates = $this->collectRates($this->createQuote(self::RIO, 1));
 
         $this->assertSame(0.0, $rates['flatrate_flatrate']['price']);
+    }
+
+    public function testOverwriteWithoutAnyValueKeepsTheRatePrice(): void
+    {
+        $rule = $this->createRule('Always', []);
+        $this->createExistingMethod(
+            ExistingMethodInterface::ACTION_OVERWRITE,
+            ['flatrate_flatrate'],
+            [(int)$rule->getId()],
+            null,
+            'Standard'
+        );
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 2));
+
+        $this->assertSame(10.0, $rates['flatrate_flatrate']['price'], '2 x $5, not free');
+        $this->assertSame('Standard', $rates['flatrate_flatrate']['method'], 'Titles still change');
+    }
+
+    public function testOverwriteFallsBackToTheRuleValue(): void
+    {
+        $rule = $this->createRule('Always', [], 7.0);
+        $this->createExistingMethod(ExistingMethodInterface::ACTION_OVERWRITE, ['all'], [(int)$rule->getId()]);
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 2));
+
+        $this->assertSame(7.0, $rates['flatrate_flatrate']['price']);
     }
 
     public function testExistingMethodHidesRatesOnlyWhenItsRuleIsValid(): void

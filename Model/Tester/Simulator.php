@@ -355,7 +355,7 @@ class Simulator
                 'action' => $method->getActionType(),
                 'targets' => $method->getShippingMethods(),
                 'applied' => $reason === null,
-                'reason' => $reason ?? $this->validRuleText($method, $address),
+                'reason' => $reason ?? $this->existingMethodRuleText($method, $address),
             ];
         }
 
@@ -401,6 +401,34 @@ class Simulator
         $rule = $this->ruleValidator->getFirstValidRule($this->sorted($method->getRuleIds()), $address);
 
         return $rule ? __('Applied by rule #%1 "%2".', $rule->getId(), $rule->getName()) : '';
+    }
+
+    /**
+     * Rule text, warning when "Overwrite price" keeps the rate price because no value is set.
+     *
+     * @param ExistingMethodInterface $method
+     * @param Address $address
+     * @return Phrase|string
+     */
+    private function existingMethodRuleText(ExistingMethodInterface $method, Address $address): Phrase|string
+    {
+        $rule = $this->ruleValidator->getFirstValidRule($this->sorted($method->getRuleIds()), $address);
+        if ($rule === null) {
+            return '';
+        }
+
+        if ($method->getActionType() === ExistingMethodInterface::ACTION_OVERWRITE
+            && $method->getAmount() === null
+            && $rule->getAmount() === null
+        ) {
+            return __(
+                'Applied by rule #%1 "%2", but neither the method nor the rule has a value: the price is kept.',
+                $rule->getId(),
+                $rule->getName()
+            );
+        }
+
+        return __('Applied by rule #%1 "%2".', $rule->getId(), $rule->getName());
     }
 
     /**

@@ -51,8 +51,9 @@ class ApplyRulesPlugin
 
         try {
             $this->rateProcessor->process($subject->getResult(), $request, $address);
-        } catch (\Exception $e) {
-            // A broken rule must not take the checkout down; the other carriers still show.
+        } catch (\Throwable $e) {
+            // A broken rule (or a TypeError in a third-party condition) must not take the checkout down;
+            // the carriers' own rates still show.
             $this->logger->error('Easy Shipping Rules: ' . $e->getMessage(), ['exception' => $e]);
         }
 

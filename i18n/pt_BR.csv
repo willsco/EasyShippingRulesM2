@@ -184,3 +184,5 @@
 "%1 (disabled)","%1 (desativada)"
 "Enabled, simulated as disabled.","Habilitada, simulada como desabilitada."
 "The conditions contain a type that shipping rules do not support.","As condições contêm um tipo que as regras de frete não suportam."
+"Set a ""%1"" for ""%2"": rule #%3 ""%4"" has no value.","Informe ""%1"" em ""%2"": a regra #%3 ""%4"" não tem valor."
+"Applied by rule #%1 ""%2"", but neither the method nor the rule has a value: the price is kept.","Aplicado pela regra #%1 ""%2"", mas nem o método nem a regra têm valor: o preço é mantido."

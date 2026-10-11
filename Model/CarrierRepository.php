@@ -15,13 +15,14 @@ use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Psr\Log\LoggerInterface;
 use WillSco\EasyShippingRulesM2\Api\Data\CarrierInterface;
 use WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier as CarrierResource;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory;
 
-class CarrierRepository implements CarrierRepositoryInterface
+class CarrierRepository implements CarrierRepositoryInterface, ResetAfterRequestInterface
 {
     /**
      * @var array<int, CarrierInterface>
@@ -46,6 +47,16 @@ class CarrierRepository implements CarrierRepositoryInterface
         private readonly SearchResultsInterfaceFactory $searchResultsFactory,
         private readonly LoggerInterface $logger
     ) {
+    }
+
+    /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->instances = [];
     }
 
     /**

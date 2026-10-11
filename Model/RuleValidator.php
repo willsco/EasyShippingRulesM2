@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace WillSco\EasyShippingRulesM2\Model;
 
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\CollectionFactory as RuleCollectionFactory;
 
 /**
@@ -16,8 +17,9 @@ use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\CollectionFactory as Ru
  * Active rules are loaded once per request, and a rule that (directly or indirectly)
  * references itself through a "Shipping Rule" condition is treated as not valid
  * instead of recursing forever. The rule tester can also choose which rules count as active.
+ * While rates are processed, each rule is evaluated at most once (see runMemoized()).
  */
-class RuleValidator
+class RuleValidator implements ResetAfterRequestInterface
 {
     /**
      * @var array<int, Rule>|null
@@ -28,6 +30,20 @@ class RuleValidator
      * @var array<int, true>
      */
     private array $validating = [];
+
+    /**
+     * Results of the current memoized run, by rule ID and validated object; null outside of one.
+     *
+     * @var array<string, bool>|null
+     */
+    private ?array $results = null;
+
+    /**
+     * How many times a cycle was cut, so results depending on a cut are not memoized.
+     *
+     * @var int
+     */
+    private int $cycleCuts = 0;
 
     /**
      * Rules treated as active instead of the enabled ones, while the rule tester runs.
@@ -47,6 +63,20 @@ class RuleValidator
     }
 
     /**
+     * Drop cached data between requests of a long-running application server.
+     *
+     * @return void
+     */
+    public function _resetState(): void
+    {
+        $this->activeRules = null;
+        $this->results = null;
+        $this->validating = [];
+        $this->cycleCuts = 0;
+        $this->simulatedRuleIds = null;
+    }
+
+    /**
      * Whether valid.
      *
      * @param int $ruleId
@@ -60,15 +90,52 @@ class RuleValidator
             return null;
         }
 
+        $key = $ruleId . ':' . spl_object_id($address);
+        if (isset($this->results[$key])) {
+            return $this->results[$key];
+        }
+
         if (isset($this->validating[$ruleId])) {
+            $this->cycleCuts++;
             return false;
         }
 
+        $cycleCuts = $this->cycleCuts;
         $this->validating[$ruleId] = true;
         try {
-            return (bool)$rule->validate($address);
+            $valid = (bool)$rule->validate($address);
         } finally {
             unset($this->validating[$ruleId]);
+        }
+
+        // A result reached through a cut cycle depends on where the evaluation started.
+        if ($this->results !== null && $cycleCuts === $this->cycleCuts) {
+            $this->results[$key] = $valid;
+        }
+
+        return $valid;
+    }
+
+    /**
+     * Run a callback in which each rule result is computed once and reused.
+     *
+     * Only for a callback that validates a single address that does not change meanwhile,
+     * like one rate request: methods and "Shipping Rule" conditions then share the results.
+     *
+     * @param callable $callback
+     * @return mixed callback result
+     */
+    public function runMemoized(callable $callback)
+    {
+        if ($this->results !== null) {
+            return $callback();
+        }
+
+        $this->results = [];
+        try {
+            return $callback();
+        } finally {
+            $this->results = null;
         }
     }
 
@@ -100,13 +167,16 @@ class RuleValidator
     public function runWithActiveRules(array $ruleIds, callable $callback)
     {
         $previous = $this->simulatedRuleIds;
+        $previousResults = $this->results;
         $this->simulatedRuleIds = array_map('intval', $ruleIds);
         $this->activeRules = null;
+        $this->results = null;
         try {
             return $callback();
         } finally {
             $this->simulatedRuleIds = $previous;
             $this->activeRules = null;
+            $this->results = $previousResults;
         }
     }
 

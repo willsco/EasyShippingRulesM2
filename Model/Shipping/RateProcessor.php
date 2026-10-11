@@ -53,6 +53,9 @@ class RateProcessor
     /**
      * Custom methods are added first so existing method actions can also target them.
      *
+     * The new rate list is built apart from the result, on copies of the rates, and swapped in at the
+     * end: an exception halfway leaves the carriers' rates untouched instead of half of them.
+     *
      * @param Result $result
      * @param RateRequest $request
      * @param Address $address
@@ -62,23 +65,33 @@ class RateProcessor
     {
         $storeId = (int)$request->getStoreId();
 
-        $this->addCustomMethods($result, $request, $address, $storeId);
-        $this->applyExistingMethods($result, $request, $address, $storeId);
+        $rates = $this->ruleValidator->runMemoized(function () use ($result, $request, $address, $storeId) {
+            $rates = array_merge(
+                $result->getAllRates(),
+                $this->buildCustomMethodRates($request, $address, $storeId)
+            );
+
+            return $this->applyExistingMethods($rates, $request, $address, $storeId);
+        });
+
+        $result->reset();
+        foreach ($rates as $rate) {
+            $result->append($rate);
+        }
     }
 
     /**
-     * Add custom methods.
+     * Rates of the custom methods that apply.
      *
-     * @param Result $result
      * @param RateRequest $request
      * @param Address $address
      * @param int $storeId
-     * @return void
+     * @return Method[]
      */
-    private function addCustomMethods(Result $result, RateRequest $request, Address $address, int $storeId): void
+    private function buildCustomMethodRates(RateRequest $request, Address $address, int $storeId): array
     {
         if (!$this->isDefaultRuleValid($address, $storeId)) {
-            return;
+            return [];
         }
 
         $limitCarriers = $request->getLimitCarrier() ? (array)$request->getLimitCarrier() : null;
@@ -90,6 +103,7 @@ class RateProcessor
             ->addStoreFilter($storeId)
             ->addActiveCarrierFilter();
 
+        $rates = [];
         /** @var CustomMethod $method */
         foreach ($methods as $method) {
             $carrierCode = $this->carrierCode->build((int)$method->getCarrierId());
@@ -113,20 +127,22 @@ class RateProcessor
             $rate->setPrice($price);
             $rate->setCost($price);
 
-            $result->append($rate);
+            $rates[] = $rate;
         }
+
+        return $rates;
     }
 
     /**
      * Apply existing methods.
      *
-     * @param Result $result
+     * @param array $rates rates and carrier errors
      * @param RateRequest $request
      * @param Address $address
      * @param int $storeId
-     * @return void
+     * @return array
      */
-    private function applyExistingMethods(Result $result, RateRequest $request, Address $address, int $storeId): void
+    private function applyExistingMethods(array $rates, RateRequest $request, Address $address, int $storeId): array
     {
         $methods = $this->existingMethodCollectionFactory->create()
             ->addActiveFilter()
@@ -140,11 +156,10 @@ class RateProcessor
                 continue;
             }
 
-            $rates = $result->getAllRates();
-            $result->reset();
+            $changed = [];
             foreach ($rates as $rate) {
                 if (!$rate instanceof Method || !$this->matches($method, $rate)) {
-                    $result->append($rate);
+                    $changed[] = $rate;
                     continue;
                 }
 
@@ -152,11 +167,22 @@ class RateProcessor
                     continue;
                 }
 
+                // The result still holds the original rate until the swap.
+                $rate = clone $rate;
                 if ($method->getCarrierTitle() !== null) {
                     $rate->setCarrierTitle($method->getCarrierTitle());
                 }
                 if ($method->getMethodTitle() !== null) {
                     $rate->setMethodTitle($method->getMethodTitle());
+                }
+
+                // Overwriting with no value anywhere would silently make the rate free: keep its price.
+                if ($method->getActionType() === ExistingMethodInterface::ACTION_OVERWRITE
+                    && $method->getAmount() === null
+                    && $rule->getAmount() === null
+                ) {
+                    $changed[] = $rate;
+                    continue;
                 }
 
                 $ratePrice = (float)$rate->getPrice();
@@ -167,9 +193,12 @@ class RateProcessor
                     default => $amount,
                 });
 
-                $result->append($rate);
+                $changed[] = $rate;
             }
+            $rates = $changed;
         }
+
+        return $rates;
     }
 
     /**
