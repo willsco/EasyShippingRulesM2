@@ -1,10 +1,66 @@
 <?xml version="1.0"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
-        <add id="WillSco_EasyShippingRulesM2::menu" title="Easy Shipping Rules" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::menu" sortOrder="10"/>
-        <add id="WillSco_EasyShippingRulesM2::item" title="Carriers" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/carriers"/>
-        <add id="WillSco_EasyShippingRulesM2::item2" title="Custom Methods" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/custommethods"/>
-        <add id="WillSco_EasyShippingRulesM2::item3" title="Existing Methods" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/existingmethods"/>
-        <add id="WillSco_EasyShippingRulesM2::item4" title="Rules" module="WillSco_EasyShippingRulesM2" resource="WillSco_EasyShippingRulesM2::item" parent="WillSco_EasyShippingRulesM2::menu" action="easyshippingrules/rules"/>
+        <add id="WillSco_EasyShippingRulesM2::easyshippingrules"
+             title="Easy Shipping Rules"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="Magento_Backend::stores"
+             sortOrder="50"
+             resource="WillSco_EasyShippingRulesM2::easyshippingrules"/>
+        <add id="WillSco_EasyShippingRulesM2::carrier"
+             title="Carriers"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="10"
+             action="easyshippingrules/carrier"
+             resource="WillSco_EasyShippingRulesM2::carrier"/>
+        <add id="WillSco_EasyShippingRulesM2::custom_method"
+             title="Custom Methods"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="20"
+             action="easyshippingrules/custommethod"
+             resource="WillSco_EasyShippingRulesM2::custom_method"/>
+        <add id="WillSco_EasyShippingRulesM2::existing_method"
+             title="Existing Methods"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="30"
+             action="easyshippingrules/existingmethod"
+             resource="WillSco_EasyShippingRulesM2::existing_method"/>
+        <add id="WillSco_EasyShippingRulesM2::rule"
+             title="Rules"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="40"
+             action="easyshippingrules/rule"
+             resource="WillSco_EasyShippingRulesM2::rule"/>
+        <add id="WillSco_EasyShippingRulesM2::tester"
+             title="Rule Tester"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="45"
+             action="easyshippingrules/tester"
+             resource="WillSco_EasyShippingRulesM2::tester"/>
+        <add id="WillSco_EasyShippingRulesM2::config"
+             title="Configuration"
+             translate="title"
+             module="WillSco_EasyShippingRulesM2"
+             parent="WillSco_EasyShippingRulesM2::easyshippingrules"
+             sortOrder="50"
+             action="adminhtml/system_config/edit/section/easyshippingrules"
+             resource="WillSco_EasyShippingRulesM2::config"/>
     </menu>
 </config>

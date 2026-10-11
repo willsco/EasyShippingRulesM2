@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  coding-standard:
+    name: Magento Coding Standard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: module
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install magento/magento-coding-standard
+        run: composer create-project --no-interaction --no-progress magento/magento-coding-standard "$RUNNER_TEMP/mcs"
+
+      - name: PHPCS (errors fail the build, warnings are reported)
+        run: >
+          "$RUNNER_TEMP/mcs/vendor/bin/phpcs" --standard=Magento2 --extensions=php,phtml,xml
+          --ignore=*/i18n/* --runtime-set ignore_warnings_on_exit 1 module
+
+  unit-tests:
+    name: Unit tests (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: module
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer:v2
+          coverage: none
+
+      # Magento packages come from the public Mage-OS mirror, so no repo.magento.com keys are needed.
+      - name: Install Magento 2.4.7 packages
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir magento && cd magento
+          cat > composer.json <<JSON
+          {
+              "repositories": [{"type": "composer", "url": "https://mirror.mage-os.org/"}],
+              "require": {
+                  "magento/framework": "103.0.7",
+                  "magento/module-sales-rule": "*",
+                  "magento/module-shipping": "*",
+                  "phpunit/phpunit": "^9.6"
+              },
+              "autoload": {
+                  "psr-4": {"WillSco\\\\EasyShippingRulesM2\\\\": "$GITHUB_WORKSPACE/module/"}
+              },
+              "config": {"allow-plugins": false}
+          }
+          JSON
+          composer update --no-interaction --no-progress --no-plugins --no-scripts --ignore-platform-req=ext-*
+          cat > bootstrap.php <<'PHP'
+          <?php
+          require __DIR__ . '/vendor/autoload.php';
+          require __DIR__ . '/vendor/magento/framework/Phrase/__.php';
+          PHP
+
+      - name: PHPUnit
+        run: >
+          "$RUNNER_TEMP/magento/vendor/bin/phpunit" --bootstrap "$RUNNER_TEMP/magento/bootstrap.php"
+          module/Test/Unit

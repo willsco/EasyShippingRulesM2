@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">easyshippingrules_rule_form.easyshippingrules_rule_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Rule</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="WillSco\EasyShippingRulesM2\Block\Adminhtml\Edit\BackButton"/>
+            <button name="delete" class="WillSco\EasyShippingRulesM2\Block\Adminhtml\Edit\DeleteButton"/>
+            <button name="save_and_continue" class="WillSco\EasyShippingRulesM2\Block\Adminhtml\Edit\SaveAndContinueButton"/>
+            <button name="save" class="WillSco\EasyShippingRulesM2\Block\Adminhtml\Edit\SaveButton"/>
+        </buttons>
+        <namespace>easyshippingrules_rule_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>easyshippingrules_rule_form.easyshippingrules_rule_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="easyshippingrules_rule_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="easyshippingrules/rule/save"/>
+        </settings>
+        <dataProvider class="WillScoEsrRuleFormDataProvider" name="easyshippingrules_rule_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>rule_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general" sortOrder="10">
+        <settings>
+            <label/>
+        </settings>
+        <field name="rule_id" formElement="input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <visible>false</visible>
+                <dataScope>rule_id</dataScope>
+            </settings>
+        </field>
+        <field name="is_active" sortOrder="10" formElement="checkbox">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                    <item name="default" xsi:type="number">1</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Enabled</label>
+                <dataScope>is_active</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="name" sortOrder="20" formElement="input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Rule Name</label>
+                <dataScope>name</dataScope>
+            </settings>
+        </field>
+        <field name="description" sortOrder="30" formElement="textarea">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Description</label>
+                <dataScope>description</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="conditions" sortOrder="20">
+        <settings>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+            <label translate="true">Conditions</label>
+        </settings>
+        <container name="conditions_container" sortOrder="10">
+            <htmlContent name="html_content">
+                <block name="easyshippingrules_rule_conditions" class="WillSco\EasyShippingRulesM2\Block\Adminhtml\Rule\Conditions"/>
+            </htmlContent>
+        </container>
+    </fieldset>
+    <fieldset name="pricing" sortOrder="30">
+        <settings>
+            <collapsible>true</collapsible>
+            <opened>true</opened>
+            <label translate="true">Price</label>
+        </settings>
+        <field name="amount" sortOrder="10" formElement="input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Price / Percentage</label>
+                <dataScope>amount</dataScope>
+                <notice translate="true">Used by methods that have no Price / Percentage of their own, according to the method Calculation Type.</notice>
+            </settings>
+        </field>
+    </fieldset>
+</form>

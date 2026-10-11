@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Existing methods can also use a percentage of the original rate -->
+    <virtualType name="WillScoEsrExistingCalculationType" type="WillSco\EasyShippingRulesM2\Model\Source\CalculationType">
+        <arguments>
+            <argument name="withRatePercentage" xsi:type="boolean">true</argument>
+        </arguments>
+    </virtualType>
+    <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Existingmethod\Save">
+        <arguments>
+            <argument name="calculationTypeSource" xsi:type="object">WillScoEsrExistingCalculationType</argument>
+        </arguments>
+    </type>
+
+    <!-- Edit form data providers -->
+    <virtualType name="WillScoEsrCarrierFormDataProvider" type="WillSco\EasyShippingRulesM2\Ui\DataProvider\FormDataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\Collection</argument>
+            <argument name="persistorKey" xsi:type="const">WillSco\EasyShippingRulesM2\Controller\Adminhtml\Carrier\Save::PERSISTOR_KEY</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrRuleFormDataProvider" type="WillSco\EasyShippingRulesM2\Ui\DataProvider\FormDataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\Collection</argument>
+            <argument name="persistorKey" xsi:type="const">WillSco\EasyShippingRulesM2\Controller\Adminhtml\Rule\Save::PERSISTOR_KEY</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrCustomMethodFormDataProvider" type="WillSco\EasyShippingRulesM2\Ui\DataProvider\FormDataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\Collection</argument>
+            <argument name="persistorKey" xsi:type="const">WillSco\EasyShippingRulesM2\Controller\Adminhtml\Custommethod\Save::PERSISTOR_KEY</argument>
+            <argument name="hasStoreField" xsi:type="boolean">true</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrExistingMethodFormDataProvider" type="WillSco\EasyShippingRulesM2\Ui\DataProvider\FormDataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object" shared="false">WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod\Collection</argument>
+            <argument name="persistorKey" xsi:type="const">WillSco\EasyShippingRulesM2\Controller\Adminhtml\Existingmethod\Save::PERSISTOR_KEY</argument>
+            <argument name="hasStoreField" xsi:type="boolean">true</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Listing mass action sub-menus -->
+    <virtualType name="WillScoEsrStatusMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
+        <arguments>
+            <argument name="optionSource" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</argument>
+            <argument name="field" xsi:type="string">is_active</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrCarrierMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
+        <arguments>
+            <argument name="optionSource" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Carrier</argument>
+            <argument name="field" xsi:type="string">carrier_id</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrCalculationTypeMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
+        <arguments>
+            <argument name="optionSource" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\CalculationType</argument>
+            <argument name="field" xsi:type="string">calculation_type</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrExistingCalculationTypeMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
+        <arguments>
+            <argument name="optionSource" xsi:type="object">WillScoEsrExistingCalculationType</argument>
+            <argument name="field" xsi:type="string">calculation_type</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrActionTypeMassOptions" type="WillSco\EasyShippingRulesM2\Ui\Component\MassAction\Options">
+        <arguments>
+            <argument name="optionSource" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\ActionType</argument>
+            <argument name="field" xsi:type="string">action_type</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Fields each mass update action may change -->
+    <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Carrier\MassUpdate">
+        <arguments>
+            <argument name="allowedFields" xsi:type="array">
+                <item name="is_active" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Rule\MassUpdate">
+        <arguments>
+            <argument name="allowedFields" xsi:type="array">
+                <item name="is_active" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Custommethod\MassUpdate">
+        <arguments>
+            <argument name="allowedFields" xsi:type="array">
+                <item name="is_active" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</item>
+                <item name="carrier_id" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Carrier</item>
+                <item name="calculation_type" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\CalculationType</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="WillSco\EasyShippingRulesM2\Controller\Adminhtml\Existingmethod\MassUpdate">
+        <arguments>
+            <argument name="allowedFields" xsi:type="array">
+                <item name="is_active" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\Status</item>
+                <item name="action_type" xsi:type="object">WillSco\EasyShippingRulesM2\Model\Source\ActionType</item>
+                <item name="calculation_type" xsi:type="object">WillScoEsrExistingCalculationType</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

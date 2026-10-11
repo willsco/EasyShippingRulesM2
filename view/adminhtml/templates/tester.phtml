@@ -1,0 +1,301 @@
+<?php
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+
+/** @var \WillSco\EasyShippingRulesM2\Block\Adminhtml\Tester $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+$renderOptions = static function (array $options, string $selected) use (&$renderOptions, $escaper): string {
+    $html = '';
+    foreach ($options as $option) {
+        $label = $escaper->escapeHtml(trim((string)$option['label']));
+        if (is_array($option['value'])) {
+            $html .= $option['value']
+                ? '<optgroup label="' . $label . '">' . $renderOptions($option['value'], $selected) . '</optgroup>'
+                : '';
+            continue;
+        }
+        $value = (string)$option['value'];
+        $html .= '<option value="' . $escaper->escapeHtmlAttr($value) . '"'
+            . ($value === $selected ? ' selected="selected"' : '') . '>' . $label . '</option>';
+    }
+    return $html;
+};
+
+$statusLabels = [
+    'added' => __('Added'),
+    'changed' => __('Changed'),
+    'unchanged' => __('Unchanged'),
+    'hidden' => __('Hidden'),
+    'valid' => __('Valid'),
+    'invalid' => __('Not valid'),
+    'disabled' => __('Disabled'),
+];
+$result = $block->getResult();
+?>
+<?php if ($block->getData('error')): ?>
+    <div class="messages">
+        <div class="message message-error error"><?= $escaper->escapeHtml($block->getData('error')) ?></div>
+    </div>
+<?php endif; ?>
+<form action="<?= $escaper->escapeUrl($block->getFormAction()) ?>" method="post" class="esr-tester">
+    <input name="form_key" type="hidden" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+    <fieldset class="fieldset admin__fieldset">
+        <legend class="admin__legend legend">
+            <span><?= $escaper->escapeHtml(__('Cart')) ?></span>
+        </legend>
+        <p class="admin__field-note">
+            <?= $escaper->escapeHtml(__(
+                'Describe a cart to see which rules are valid and which shipping rates a customer would get. '
+                . 'Nothing is saved.'
+            )) ?>
+        </p>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-store">
+                <span><?= $escaper->escapeHtml(__('Store View')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <select id="esr-store" name="store_id" class="admin__control-select">
+                    <?= /* @noEscape */ $renderOptions($block->getStoreOptions(), $block->getInputValue('store_id')) ?>
+                </select>
+            </div>
+        </div>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-items">
+                <span><?= $escaper->escapeHtml(__('Products')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <textarea id="esr-items" name="items" rows="5" class="admin__control-textarea"
+                          required="required" placeholder="SKU-1, 2&#10;SKU-2, 1"
+                ><?= $escaper->escapeHtml($block->getInputValue('items')) ?></textarea>
+                <div class="admin__field-note">
+                    <?= $escaper->escapeHtml(__('One product per line: SKU, quantity.')) ?>
+                </div>
+            </div>
+        </div>
+        <?php if ($block->canSimulateCustomer()): ?>
+            <div class="admin__field">
+                <label class="admin__field-label" for="esr-email">
+                    <span><?= $escaper->escapeHtml(__('Customer Email')) ?></span>
+                </label>
+                <div class="admin__field-control">
+                    <input id="esr-email" name="customer_email" type="email" class="admin__control-text"
+                           value="<?= $escaper->escapeHtmlAttr($block->getInputValue('customer_email')) ?>"/>
+                    <div class="admin__field-note">
+                        <?= $escaper->escapeHtml(__('Leave empty to simulate a guest of the group below.')) ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-group">
+                <span><?= $escaper->escapeHtml(__('Customer Group')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <select id="esr-group" name="customer_group_id" class="admin__control-select">
+                    <?= /* @noEscape */ $renderOptions(
+                        $block->getGroupOptions(),
+                        $block->getInputValue('customer_group_id', '0')
+                    ) ?>
+                </select>
+            </div>
+        </div>
+        <?php $ruleOptions = $block->getRuleOptions(); ?>
+        <?php if ($ruleOptions): ?>
+            <div class="admin__field">
+                <label class="admin__field-label" for="esr-rules">
+                    <span><?= $escaper->escapeHtml(__('Rules Active in the Simulation')) ?></span>
+                </label>
+                <div class="admin__field-control">
+                    <?php /* Sent even when nothing is selected, so "no active rules" can be simulated. */ ?>
+                    <input type="hidden" name="rule_ids[]" value=""/>
+                    <select id="esr-rules" name="rule_ids[]" multiple="multiple" size="8"
+                            class="admin__control-multiselect">
+                        <?php foreach ($ruleOptions as $option): ?>
+                            <option value="<?= $escaper->escapeHtmlAttr($option['value']) ?>"
+                                <?= $option['selected'] ? 'selected="selected"' : '' ?>
+                            ><?= $escaper->escapeHtml($option['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="admin__field-note">
+                        <?= $escaper->escapeHtml(__(
+                            'Select a disabled rule to try it before enabling it, or unselect an enabled rule '
+                            . 'to see the cart without it. Rules keep their status in the store.'
+                        )) ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    </fieldset>
+    <fieldset class="fieldset admin__fieldset">
+        <legend class="admin__legend legend">
+            <span><?= $escaper->escapeHtml(__('Shipping Address')) ?></span>
+        </legend>
+        <div class="admin__field _required">
+            <label class="admin__field-label" for="esr-country">
+                <span><?= $escaper->escapeHtml(__('Country')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <select id="esr-country" name="country_id" class="admin__control-select" required="required">
+                    <?= /* @noEscape */ $renderOptions(
+                        $block->getCountryOptions(),
+                        $block->getInputValue('country_id', 'BR')
+                    ) ?>
+                </select>
+            </div>
+        </div>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-region">
+                <span><?= $escaper->escapeHtml(__('State/Province')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <input id="esr-region" name="region" type="text" class="admin__control-text"
+                       value="<?= $escaper->escapeHtmlAttr($block->getInputValue('region')) ?>"/>
+                <div class="admin__field-note"><?= $escaper->escapeHtml(__('Region code, e.g. SP or CA.')) ?></div>
+            </div>
+        </div>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-postcode">
+                <span><?= $escaper->escapeHtml(__('Zip/Postal Code')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <input id="esr-postcode" name="postcode" type="text" class="admin__control-text"
+                       value="<?= $escaper->escapeHtmlAttr($block->getInputValue('postcode')) ?>"/>
+            </div>
+        </div>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-city">
+                <span><?= $escaper->escapeHtml(__('City')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <input id="esr-city" name="city" type="text" class="admin__control-text"
+                       value="<?= $escaper->escapeHtmlAttr($block->getInputValue('city')) ?>"/>
+            </div>
+        </div>
+        <div class="admin__field">
+            <div class="admin__field-control">
+                <button type="submit" class="action-primary">
+                    <span><?= $escaper->escapeHtml(__('Run Test')) ?></span>
+                </button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+
+<?php if ($result !== null): ?>
+    <?php foreach ($result['warnings'] as $warning): ?>
+        <div class="message message-warning"><?= $escaper->escapeHtml($warning) ?></div>
+    <?php endforeach; ?>
+
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Shipping Rates')) ?></span>
+        </div>
+        <p>
+            <?= $escaper->escapeHtml(__(
+                'Subtotal: %1 | Items: %2 | Weight: %3',
+                $block->formatPrice($result['cart']['subtotal']),
+                $result['cart']['qty'],
+                $result['cart']['weight']
+            )) ?>
+        </p>
+        <?php if (!$result['rates']): ?>
+            <p><?= $escaper->escapeHtml(__('No shipping rates were returned for this cart.')) ?></p>
+        <?php else: ?>
+            <table class="data-grid">
+                <thead>
+                <tr>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Code')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Carrier')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Method')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Price Without Rules')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Price')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($result['rates'] as $rate): ?>
+                    <tr>
+                        <td><?= $escaper->escapeHtml($rate['code']) ?></td>
+                        <td><?= $escaper->escapeHtml($rate['carrier']) ?></td>
+                        <td>
+                            <?= $escaper->escapeHtml($rate['method']) ?>
+                            <?php if ($rate['error']): ?>
+                                <div class="message message-error"><?= $escaper->escapeHtml($rate['error']) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= $rate['original']
+                                ? $escaper->escapeHtml($block->formatPrice($rate['original']['price']))
+                                : '&mdash;' ?></td>
+                        <td><?= $rate['status'] === 'hidden'
+                                ? '&mdash;'
+                                : $escaper->escapeHtml($block->formatPrice($rate['price'])) ?></td>
+                        <td><?= $escaper->escapeHtml($statusLabels[$rate['status']]) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </section>
+
+    <section class="admin__page-section">
+        <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml(__('Rules')) ?></span></div>
+        <table class="data-grid">
+            <thead>
+            <tr>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('ID')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Rule Name')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Result')) ?></th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($result['rules'] as $rule): ?>
+                <tr>
+                    <td><?= (int)$rule['id'] ?></td>
+                    <td><?= $escaper->escapeHtml($rule['name']) ?></td>
+                    <td>
+                        <?= $escaper->escapeHtml($statusLabels[$rule['status']]) ?>
+                        <?php if ($rule['simulated']): ?>
+                            <div class="admin__field-note">
+                                <?= $escaper->escapeHtml($rule['simulated'] === 'enabled'
+                                    ? __('Disabled, simulated as enabled.')
+                                    : __('Enabled, simulated as disabled.')) ?>
+                            </div>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+    </section>
+
+    <?php
+    $methodSections = ['custom_methods' => __('Custom Methods'), 'existing_methods' => __('Existing Methods')];
+    foreach ($methodSections as $key => $title): ?>
+        <section class="admin__page-section">
+            <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml($title) ?></span></div>
+            <table class="data-grid">
+                <thead>
+                <tr>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('ID')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Name')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Applied')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Details')) ?></th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($result[$key] as $method): ?>
+                    <tr>
+                        <td><?= (int)$method['id'] ?></td>
+                        <td><?= $escaper->escapeHtml($method['name']) ?></td>
+                        <td><?= $escaper->escapeHtml($method['applied'] ? __('Yes') : __('No')) ?></td>
+                        <td><?= $escaper->escapeHtml($method['reason']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </section>
+    <?php endforeach; ?>
+<?php endif; ?>

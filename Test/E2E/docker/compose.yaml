@@ -1,0 +1,61 @@
+# End-to-end test environment. See Test/E2E/README.md.
+name: esr-e2e
+
+services:
+  db:
+    image: mariadb:10.6
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: magento
+      MARIADB_USER: magento
+      MARIADB_PASSWORD: magento
+    volumes:
+      - db:/var/lib/mysql
+
+  search:
+    image: opensearchproject/opensearch:2.12.0
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+  magento:
+    build: .
+    depends_on: [db, search]
+    environment:
+      MAGENTO_VERSION: ${MAGENTO_VERSION:-2.4.7-p10}
+      MAGENTO_BASE_URL: http://localhost:8080/
+    volumes:
+      - magento:/var/www/magento
+      - ../../..:/var/www/magento/app/code/WillSco/EasyShippingRulesM2:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://localhost:8080/health_check.php') === false ? 1 : 0);"]
+      interval: 15s
+      timeout: 10s
+      start_period: 60s
+      retries: 240
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.2-noble
+    profiles: [test]
+    # Share the Magento network namespace so http://localhost:8080 (the base URL) works in the browser.
+    network_mode: service:magento
+    depends_on:
+      magento:
+        condition: service_healthy
+    working_dir: /e2e
+    environment:
+      CI: ${CI:-}
+      PW_ARGS: ${PW_ARGS:-}
+    volumes:
+      - ..:/e2e
+      - node_modules:/e2e/node_modules
+    command: ["bash", "-c", "npm ci --no-audit --no-fund && npx playwright test $$PW_ARGS"]
+
+volumes:
+  db:
+  magento:
+  node_modules:

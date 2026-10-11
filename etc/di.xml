@@ -1,16 +1,70 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../../../lib/internal/Magento/Framework/ObjectManager/etc/config.xsd">
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Service contracts -->
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\CarrierInterface" type="WillSco\EasyShippingRulesM2\Model\Carrier"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\RuleInterface" type="WillSco\EasyShippingRulesM2\Model\Rule"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\CustomMethodInterface" type="WillSco\EasyShippingRulesM2\Model\CustomMethod"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\Data\ExistingMethodInterface" type="WillSco\EasyShippingRulesM2\Model\ExistingMethod"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\CarrierRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\CarrierRepository"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\RuleRepository"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\CustomMethodRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\CustomMethodRepository"/>
+    <preference for="WillSco\EasyShippingRulesM2\Api\ExistingMethodRepositoryInterface" type="WillSco\EasyShippingRulesM2\Model\ExistingMethodRepository"/>
 
-    <virtualType name="WillScoEasyShippingRulesM2CarriersCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+    <!-- Shipping rate integration -->
+    <type name="Magento\Shipping\Model\Shipping">
+        <plugin name="willsco_esr_apply_rules" type="WillSco\EasyShippingRulesM2\Plugin\Shipping\ApplyRulesPlugin"/>
+    </type>
+    <type name="Magento\Shipping\Model\CarrierFactory">
+        <plugin name="willsco_esr_carrier_factory" type="WillSco\EasyShippingRulesM2\Plugin\Shipping\CarrierFactoryPlugin"/>
+    </type>
+    <type name="Magento\Sales\Block\Adminhtml\Order\Create\Shipping\Method\Form">
+        <plugin name="willsco_esr_carrier_name" type="WillSco\EasyShippingRulesM2\Plugin\Block\CarrierNamePlugin"/>
+    </type>
+    <type name="Magento\Multishipping\Block\Checkout\Shipping">
+        <plugin name="willsco_esr_carrier_name" type="WillSco\EasyShippingRulesM2\Plugin\Block\CarrierNamePlugin"/>
+    </type>
+    <type name="Magento\Paypal\Block\Express\Review">
+        <plugin name="willsco_esr_carrier_name" type="WillSco\EasyShippingRulesM2\Plugin\Block\CarrierNamePlugin"/>
+    </type>
+
+    <!-- Admin grids -->
+    <virtualType name="WillScoEsrCarrierGridCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
-            <argument name="mainTable" xsi:type="string">willsco_esrm2_carriers</argument>
-            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\Carriers</argument>
+            <argument name="mainTable" xsi:type="const">WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier::MAIN_TABLE</argument>
+            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrRuleGridCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="const">WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule::MAIN_TABLE</argument>
+            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrCustomMethodGridCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="const">WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod::MAIN_TABLE</argument>
+            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="WillScoEsrExistingMethodGridCollection" type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="const">WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod::MAIN_TABLE</argument>
+            <argument name="resourceModel" xsi:type="string">WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod</argument>
         </arguments>
     </virtualType>
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
-                <item name="easyshippingrules_carriers_grid_data_source" xsi:type="string">WillScoEasyShippingRulesM2CarriersCollection</item>
+                <item name="easyshippingrules_carrier_listing_data_source" xsi:type="string">WillScoEsrCarrierGridCollection</item>
+                <item name="easyshippingrules_rule_listing_data_source" xsi:type="string">WillScoEsrRuleGridCollection</item>
+                <item name="easyshippingrules_custommethod_listing_data_source" xsi:type="string">WillScoEsrCustomMethodGridCollection</item>
+                <item name="easyshippingrules_existingmethod_listing_data_source" xsi:type="string">WillScoEsrExistingMethodGridCollection</item>
             </argument>
         </arguments>
     </type>

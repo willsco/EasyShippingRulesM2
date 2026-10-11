@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="easyshippingrules" translate="label" sortOrder="320" showInDefault="1" showInWebsite="1" showInStore="0">
+            <label>Easy Shipping Rules</label>
+            <tab>sales</tab>
+            <resource>WillSco_EasyShippingRulesM2::config</resource>
+            <group id="general" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                <label>General</label>
+                <field id="default_rule" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0" canRestore="1">
+                    <label>Default Rule</label>
+                    <comment>When set, custom methods are only offered if this rule is valid for the cart.</comment>
+                    <source_model>WillSco\EasyShippingRulesM2\Model\Config\Source\DefaultRule</source_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

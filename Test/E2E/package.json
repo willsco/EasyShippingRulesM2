@@ -1,0 +1,13 @@
+{
+  "name": "easy-shipping-rules-e2e",
+  "private": true,
+  "description": "End-to-end tests for WillSco_EasyShippingRulesM2",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "@types/node": "20.16.11"
+  }
+}

@@ -1,0 +1,131 @@
+{
+    "willsco_esr_carrier": {
+        "column": {
+            "carrier_id": true,
+            "name": true,
+            "is_active": true,
+            "sort_order": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_CARRIER_NAME": true
+        }
+    },
+    "willsco_esr_rule": {
+        "column": {
+            "rule_id": true,
+            "name": true,
+            "description": true,
+            "is_active": true,
+            "conditions_serialized": true,
+            "amount": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "WILLSCO_ESR_RULE_IS_ACTIVE": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "willsco_esr_custom_method": {
+        "column": {
+            "method_id": true,
+            "carrier_id": true,
+            "name": true,
+            "is_active": true,
+            "calculation_type": true,
+            "amount": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "WILLSCO_ESR_CUSTOM_METHOD_CARRIER_ID": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_IS_ACTIVE": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_CARRIER_ID_WILLSCO_ESR_CARRIER_CARRIER_ID": true
+        }
+    },
+    "willsco_esr_custom_method_store": {
+        "column": {
+            "method_id": true,
+            "store_id": true
+        },
+        "index": {
+            "WILLSCO_ESR_CUSTOM_METHOD_STORE_STORE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_STORE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_STORE_STORE_ID_STORE_STORE_ID": true
+        }
+    },
+    "willsco_esr_custom_method_rule": {
+        "column": {
+            "method_id": true,
+            "rule_id": true
+        },
+        "index": {
+            "WILLSCO_ESR_CUSTOM_METHOD_RULE_RULE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_RULE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID": true,
+            "WILLSCO_ESR_CUSTOM_METHOD_RULE_RULE_ID_WILLSCO_ESR_RULE_RULE_ID": true
+        }
+    },
+    "willsco_esr_existing_method": {
+        "column": {
+            "method_id": true,
+            "name": true,
+            "carrier_title": true,
+            "method_title": true,
+            "is_active": true,
+            "action_type": true,
+            "calculation_type": true,
+            "amount": true,
+            "shipping_methods": true,
+            "created_at": true,
+            "updated_at": true
+        },
+        "index": {
+            "WILLSCO_ESR_EXISTING_METHOD_IS_ACTIVE": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    },
+    "willsco_esr_existing_method_store": {
+        "column": {
+            "method_id": true,
+            "store_id": true
+        },
+        "index": {
+            "WILLSCO_ESR_EXISTING_METHOD_STORE_STORE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_EXISTING_METHOD_STORE_METHOD_ID_WILLSCO_ESR_EXISTING_METHOD_METHOD_ID": true,
+            "WILLSCO_ESR_EXISTING_METHOD_STORE_STORE_ID_STORE_STORE_ID": true
+        }
+    },
+    "willsco_esr_existing_method_rule": {
+        "column": {
+            "method_id": true,
+            "rule_id": true
+        },
+        "index": {
+            "WILLSCO_ESR_EXISTING_METHOD_RULE_RULE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "WILLSCO_ESR_EXISTING_METHOD_RULE_METHOD_ID_WILLSCO_ESR_EXISTING_METHOD_METHOD_ID": true,
+            "WILLSCO_ESR_EXISTING_METHOD_RULE_RULE_ID_WILLSCO_ESR_RULE_RULE_ID": true
+        }
+    }
+}

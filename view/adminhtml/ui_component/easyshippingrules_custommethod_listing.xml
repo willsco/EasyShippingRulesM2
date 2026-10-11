@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">easyshippingrules_custommethod_listing.easyshippingrules_custommethod_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new"/>
+                <class>primary</class>
+                <label translate="true">Add New Custom Method</label>
+            </button>
+        </buttons>
+        <spinner>easyshippingrules_custommethod_columns</spinner>
+        <deps>
+            <dep>easyshippingrules_custommethod_listing.easyshippingrules_custommethod_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="easyshippingrules_custommethod_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">method_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>WillSco_EasyShippingRulesM2::custom_method</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="easyshippingrules_custommethod_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>method_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/tree-massactions">
+            <action name="delete">
+                <settings>
+                    <confirm>
+                        <message translate="true">Are you sure you want to delete the selected items?</message>
+                        <title translate="true">Delete items</title>
+                    </confirm>
+                    <url path="*/*/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                </settings>
+            </action>
+            <action name="is_active">
+                <settings>
+                    <type>is_active</type>
+                    <label translate="true">Change Status</label>
+                    <actions class="WillScoEsrStatusMassOptions"/>
+                </settings>
+            </action>
+            <action name="carrier_id">
+                <settings>
+                    <type>carrier_id</type>
+                    <label translate="true">Change Carrier</label>
+                    <actions class="WillScoEsrCarrierMassOptions"/>
+                </settings>
+            </action>
+            <action name="calculation_type">
+                <settings>
+                    <type>calculation_type</type>
+                    <label translate="true">Change Calculation Type</label>
+                    <actions class="WillScoEsrCalculationTypeMassOptions"/>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="easyshippingrules_custommethod_columns">
+        <selectionsColumn name="ids">
+            <settings>
+                <indexField>method_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="method_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>asc</sorting>
+            </settings>
+        </column>
+        <column name="name" sortOrder="20">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Name</label>
+            </settings>
+        </column>
+        <column name="carrier_id" component="Magento_Ui/js/grid/columns/select" sortOrder="30">
+            <settings>
+                <options class="WillSco\EasyShippingRulesM2\Model\Source\Carrier"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Carrier</label>
+            </settings>
+        </column>
+        <column name="is_active" component="Magento_Ui/js/grid/columns/select" sortOrder="40">
+            <settings>
+                <options class="WillSco\EasyShippingRulesM2\Model\Source\Status"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Status</label>
+            </settings>
+        </column>
+        <column name="calculation_type" component="Magento_Ui/js/grid/columns/select" sortOrder="50">
+            <settings>
+                <options class="WillSco\EasyShippingRulesM2\Model\Source\CalculationType"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Calculation Type</label>
+            </settings>
+        </column>
+        <column name="amount" sortOrder="60">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Price / Percentage</label>
+            </settings>
+        </column>
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="900">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="updated_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="910">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Modified</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="WillSco\EasyShippingRulesM2\Ui\Component\Listing\Column\RowActions" sortOrder="1000">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="urlPrefix" xsi:type="string">easyshippingrules/custommethod</item>
+                </item>
+            </argument>
+            <settings>
+                <indexField>method_id</indexField>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

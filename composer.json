@@ -1,16 +1,31 @@
 {
     "name": "willsco/module-easyshippingrulesm2",
-    "description": "WillSco",
+    "description": "Create custom shipping methods and change existing ones based on cart, product and customer rules.",
     "type": "magento2-module",
-    "license": "GPL-3.0",
+    "version": "1.0.0",
+    "license": "OSL-3.0",
     "authors": [
         {
-            "name": "Mage2Gen",
-            "email": "info@mage2gen.com"
+            "name": "William Oliveira"
         }
     ],
-    "minimum-stability": "dev",
-    "require": {},
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0",
+        "magento/framework": "^103.0.4",
+        "magento/module-backend": "*",
+        "magento/module-catalog": "*",
+        "magento/module-config": "*",
+        "magento/module-customer": "*",
+        "magento/module-directory": "*",
+        "magento/module-eav": "*",
+        "magento/module-quote": "*",
+        "magento/module-rule": "*",
+        "magento/module-sales": "*",
+        "magento/module-sales-rule": "*",
+        "magento/module-shipping": "*",
+        "magento/module-store": "*",
+        "magento/module-ui": "*"
+    },
     "autoload": {
         "files": [
             "registration.php"
@@ -18,5 +33,12 @@
         "psr-4": {
             "WillSco\\EasyShippingRulesM2\\": ""
         }
+    },
+    "archive": {
+        "exclude": [
+            "/Test/E2E",
+            "/.github",
+            "/.gitattributes"
+        ]
     }
 }

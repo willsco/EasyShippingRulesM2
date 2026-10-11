@@ -1,17 +1,16 @@
 Copyright © 2022-present WillSco
 
+Licensed under the Open Software License version 3.0
+
 This file is part of WillSco/EasyShippingRulesM2.
 
-WillSco/EasyShippingRulesM2 is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+WillSco/EasyShippingRulesM2 is distributed under the terms of the Open Software License ("OSL") v. 3.0.
+Please see LICENSE.txt for the full text of the license, also available at
+https://opensource.org/licenses/OSL-3.0
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+Attribution
 
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-Please see LICENSE.txt for the full text of GNU General Public License
+This work is a Derivative Work, as defined by the OSL v. 3.0, of the "Easy Shipping Rules" module
+for Magento 1, Copyright (c) Matheus Gontijo <matheus@matheusgontijo.com> and contributors,
+licensed under the Open Software License version 3.0:
+https://github.com/matheusgontijo/easy-shipping-rules

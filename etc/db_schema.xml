@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright © WillSco All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="willsco_esr_carrier" resource="default" engine="innodb" comment="Easy Shipping Rules - Carrier">
+        <column xsi:type="int" name="carrier_id" unsigned="true" nullable="false" identity="true" comment="Carrier ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="int" name="sort_order" unsigned="false" nullable="false" default="0" comment="Sort Order"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="carrier_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="WILLSCO_ESR_CARRIER_NAME">
+            <column name="name"/>
+        </constraint>
+    </table>
+
+    <table name="willsco_esr_rule" resource="default" engine="innodb" comment="Easy Shipping Rules - Rule">
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" identity="true" comment="Rule ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
+        <column xsi:type="text" name="description" nullable="true" comment="Description"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="mediumtext" name="conditions_serialized" nullable="true" comment="Conditions Serialized"/>
+        <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rule_id"/>
+        </constraint>
+        <index referenceId="WILLSCO_ESR_RULE_IS_ACTIVE" indexType="btree">
+            <column name="is_active"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_custom_method" resource="default" engine="innodb" comment="Easy Shipping Rules - Custom Method">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" identity="true" comment="Method ID"/>
+        <column xsi:type="int" name="carrier_id" unsigned="true" nullable="true" comment="Carrier ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="varchar" name="calculation_type" nullable="false" length="32" default="fixed" comment="Calculation Type"/>
+        <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_CARRIER_ID_WILLSCO_ESR_CARRIER_CARRIER_ID"
+                    table="willsco_esr_custom_method" column="carrier_id"
+                    referenceTable="willsco_esr_carrier" referenceColumn="carrier_id"
+                    onDelete="SET NULL"/>
+        <index referenceId="WILLSCO_ESR_CUSTOM_METHOD_CARRIER_ID" indexType="btree">
+            <column name="carrier_id"/>
+        </index>
+        <index referenceId="WILLSCO_ESR_CUSTOM_METHOD_IS_ACTIVE" indexType="btree">
+            <column name="is_active"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_custom_method_store" resource="default" engine="innodb" comment="Easy Shipping Rules - Custom Method To Store">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Method ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" comment="Store ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_STORE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID"
+                    table="willsco_esr_custom_method_store" column="method_id"
+                    referenceTable="willsco_esr_custom_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_STORE_STORE_ID_STORE_STORE_ID"
+                    table="willsco_esr_custom_method_store" column="store_id"
+                    referenceTable="store" referenceColumn="store_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_CUSTOM_METHOD_STORE_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_custom_method_rule" resource="default" engine="innodb" comment="Easy Shipping Rules - Custom Method To Rule">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Method ID"/>
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+            <column name="rule_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_RULE_METHOD_ID_WILLSCO_ESR_CUSTOM_METHOD_METHOD_ID"
+                    table="willsco_esr_custom_method_rule" column="method_id"
+                    referenceTable="willsco_esr_custom_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_CUSTOM_METHOD_RULE_RULE_ID_WILLSCO_ESR_RULE_RULE_ID"
+                    table="willsco_esr_custom_method_rule" column="rule_id"
+                    referenceTable="willsco_esr_rule" referenceColumn="rule_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_CUSTOM_METHOD_RULE_RULE_ID" indexType="btree">
+            <column name="rule_id"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_existing_method" resource="default" engine="innodb" comment="Easy Shipping Rules - Existing Method">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" identity="true" comment="Method ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="255" comment="Name"/>
+        <column xsi:type="varchar" name="carrier_title" nullable="true" length="255" comment="Carrier Title Override"/>
+        <column xsi:type="varchar" name="method_title" nullable="true" length="255" comment="Method Title Override"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1" comment="Is Active"/>
+        <column xsi:type="varchar" name="action_type" nullable="false" length="32" default="overwrite" comment="Action Type"/>
+        <column xsi:type="varchar" name="calculation_type" nullable="false" length="32" default="fixed" comment="Calculation Type"/>
+        <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
+        <column xsi:type="text" name="shipping_methods" nullable="true" comment="Shipping Methods (JSON)"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+        </constraint>
+        <index referenceId="WILLSCO_ESR_EXISTING_METHOD_IS_ACTIVE" indexType="btree">
+            <column name="is_active"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_existing_method_store" resource="default" engine="innodb" comment="Easy Shipping Rules - Existing Method To Store">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Method ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" comment="Store ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_EXISTING_METHOD_STORE_METHOD_ID_WILLSCO_ESR_EXISTING_METHOD_METHOD_ID"
+                    table="willsco_esr_existing_method_store" column="method_id"
+                    referenceTable="willsco_esr_existing_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_EXISTING_METHOD_STORE_STORE_ID_STORE_STORE_ID"
+                    table="willsco_esr_existing_method_store" column="store_id"
+                    referenceTable="store" referenceColumn="store_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_EXISTING_METHOD_STORE_STORE_ID" indexType="btree">
+            <column name="store_id"/>
+        </index>
+    </table>
+
+    <table name="willsco_esr_existing_method_rule" resource="default" engine="innodb" comment="Easy Shipping Rules - Existing Method To Rule">
+        <column xsi:type="int" name="method_id" unsigned="true" nullable="false" comment="Method ID"/>
+        <column xsi:type="int" name="rule_id" unsigned="true" nullable="false" comment="Rule ID"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="method_id"/>
+            <column name="rule_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_EXISTING_METHOD_RULE_METHOD_ID_WILLSCO_ESR_EXISTING_METHOD_METHOD_ID"
+                    table="willsco_esr_existing_method_rule" column="method_id"
+                    referenceTable="willsco_esr_existing_method" referenceColumn="method_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign" referenceId="WILLSCO_ESR_EXISTING_METHOD_RULE_RULE_ID_WILLSCO_ESR_RULE_RULE_ID"
+                    table="willsco_esr_existing_method_rule" column="rule_id"
+                    referenceTable="willsco_esr_rule" referenceColumn="rule_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="WILLSCO_ESR_EXISTING_METHOD_RULE_RULE_ID" indexType="btree">
+            <column name="rule_id"/>
+        </index>
+    </table>
+</schema>
