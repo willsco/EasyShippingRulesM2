@@ -151,6 +151,8 @@ and row total are always available.
 | Calculation Type | *Fixed (whole cart)*, *Fixed (per item qty)* or *Percentage of subtotal*. |
 | Price / Percentage | Leave empty to use the value of the rule. `0` means free. |
 
+Like Magento's own carriers, custom methods cost `0` when a Cart Price Rule grants free shipping.
+
 ### Existing Methods
 
 | Field | Description |

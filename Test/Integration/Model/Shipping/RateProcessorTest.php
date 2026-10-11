@@ -15,8 +15,10 @@ use Magento\Catalog\Model\Product\Visibility;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Framework\App\Config\MutableScopeConfigInterface;
 use Magento\Framework\ObjectManagerInterface;
+use Magento\OfflineShipping\Model\SalesRule\Rule as FreeShippingSource;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\QuoteFactory;
+use Magento\SalesRule\Model\Rule as SalesRule;
 use Magento\Shipping\Model\CarrierFactory;
 use Magento\Store\Model\ScopeInterface;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -78,6 +80,19 @@ class RateProcessorTest extends TestCase
         $this->assertSame('Our Delivery', $rates[$code]['carrier']);
         $this->assertSame('Express', $rates[$code]['method']);
         $this->assertArrayHasKey('flatrate_flatrate', $rates);
+    }
+
+    public function testCartPriceRuleFreeShippingZeroesCustomMethods(): void
+    {
+        $carrier = $this->createCarrier('Our Delivery');
+        $rule = $this->createRule('Always', [], 12.5);
+        $method = $this->createCustomMethod($carrier, 'Express', [(int)$rule->getId()]);
+        $this->createFreeShippingCartRule();
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 2));
+
+        $this->assertSame(0.0, $rates['easyshippingrules' . $carrier->getId() . '_m' . $method->getId()]['price']);
+        $this->assertSame(0.0, $rates['flatrate_flatrate']['price'], 'Native carriers behave the same way');
     }
 
     public function testCustomMethodIsNotOfferedWhenNoRuleIsValid(): void
@@ -234,6 +249,25 @@ class RateProcessorTest extends TestCase
             ->setStatus(Status::STATUS_ENABLED)
             ->setStockData(['use_config_manage_stock' => 1, 'qty' => 1000, 'is_in_stock' => 1]);
         $this->objectManager->get(ProductRepositoryInterface::class)->save($product);
+    }
+
+    /**
+     * Create a coupon-less Cart Price Rule granting free shipping to guests.
+     *
+     * @return void
+     */
+    private function createFreeShippingCartRule(): void
+    {
+        $this->objectManager->create(SalesRule::class)
+            ->setName('ESR Free Shipping')
+            ->setIsActive(1)
+            ->setWebsiteIds([1])
+            ->setCustomerGroupIds([0])
+            ->setCouponType(SalesRule::COUPON_TYPE_NO_COUPON)
+            ->setSimpleAction(SalesRule::BY_PERCENT_ACTION)
+            ->setDiscountAmount(0)
+            ->setSimpleFreeShipping(FreeShippingSource::FREE_SHIPPING_ADDRESS)
+            ->save();
     }
 
     /**

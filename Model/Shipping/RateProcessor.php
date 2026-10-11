@@ -82,6 +82,8 @@ class RateProcessor
         }
 
         $limitCarriers = $request->getLimitCarrier() ? (array)$request->getLimitCarrier() : null;
+        // Free shipping granted by a Cart Price Rule zeroes custom methods, as native carriers do.
+        $freeShipping = (bool)$request->getFreeShipping();
 
         $methods = $this->customMethodCollectionFactory->create()
             ->addActiveFilter()
@@ -100,7 +102,7 @@ class RateProcessor
                 continue;
             }
 
-            $price = $this->priceCalculator->calculate($method, $rule, $request);
+            $price = $freeShipping ? 0.0 : $this->priceCalculator->calculate($method, $rule, $request);
 
             /** @var Method $rate */
             $rate = $this->rateMethodFactory->create();
