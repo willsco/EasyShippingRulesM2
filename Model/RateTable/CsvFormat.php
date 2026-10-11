@@ -41,6 +41,7 @@ class CsvFormat
         'subtotal_from' => ['subtotal_de', 'valor_de'],
         'subtotal_to' => ['subtotal_ate', 'valor_ate'],
         'price' => ['preco', 'valor_frete'],
+        'delivery_time' => ['prazo', 'prazo_entrega', 'prazo_de_entrega', 'prazo_dias'],
     ];
 
     /**
@@ -123,6 +124,33 @@ class CsvFormat
         }
 
         return (float)$value;
+    }
+
+    /**
+     * Delivery time in business days as "N" or "N-M"; accepts "2 a 4", "2 – 4", "3 dias"; empty when empty.
+     *
+     * @param string $value
+     * @return string
+     * @throws \InvalidArgumentException when it is not one or two whole numbers
+     */
+    public function parseDeliveryTime(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (!preg_match('/^(\d{1,3})(?:\s*(?:-|–|a|to|até)\s*(\d{1,3}))?(?:\s*\p{L}+\.?)*$/iu', $value, $match)) {
+            throw new \InvalidArgumentException($value);
+        }
+
+        $min = (int)$match[1];
+        $max = isset($match[2]) && $match[2] !== '' ? (int)$match[2] : $min;
+        if ($max < $min) {
+            throw new \InvalidArgumentException($value);
+        }
+
+        return $min === $max ? (string)$min : $min . '-' . $max;
     }
 
     /**

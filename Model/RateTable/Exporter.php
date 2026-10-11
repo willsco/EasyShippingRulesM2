@@ -83,6 +83,7 @@ class Exporter
                     $this->format->formatNumber($row['subtotal_from'], $decimal),
                     $this->format->formatNumber($row['subtotal_to'], $decimal),
                     $this->format->formatNumber($row['price'], $decimal),
+                    (string)($row['delivery_time'] ?? ''),
                 ], $delimiter, '"', '');
             }
         }

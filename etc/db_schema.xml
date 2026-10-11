@@ -29,6 +29,8 @@
         <column xsi:type="mediumtext" name="conditions_serialized" nullable="true" comment="Conditions Serialized"/>
         <column xsi:type="decimal" name="amount" scale="4" precision="12" unsigned="false" nullable="true" comment="Price or Percentage"/>
         <column xsi:type="int" name="sort_order" unsigned="false" nullable="false" default="0" comment="Priority"/>
+        <column xsi:type="date" name="from_date" nullable="true" comment="Valid From (inclusive, store time)"/>
+        <column xsi:type="date" name="to_date" nullable="true" comment="Valid To (inclusive, store time)"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Created At"/>
         <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" comment="Updated At"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -135,6 +137,7 @@
         <column xsi:type="decimal" name="subtotal_from" scale="4" precision="12" unsigned="false" nullable="true" comment="Subtotal From"/>
         <column xsi:type="decimal" name="subtotal_to" scale="4" precision="12" unsigned="false" nullable="true" comment="Subtotal To"/>
         <column xsi:type="decimal" name="price" scale="4" precision="12" unsigned="false" nullable="false" default="0" comment="Price"/>
+        <column xsi:type="varchar" name="delivery_time" nullable="false" length="20" default="" comment="Delivery Time in Business Days (N or N-M)"/>
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="row_id"/>
         </constraint>

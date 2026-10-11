@@ -26,11 +26,11 @@ class CsvParserTest extends TestCase
     public function testParsesAnExcelFileInPortuguese(): void
     {
         $result = $this->parser->parse(implode("\r\n", [
-            'Transportadora;Método;País;CEP de;CEP até;Peso até;Preço',
-            'Nossa Entrega | Correios;Expresso;br;01000;05999;5;12,90',
-            '"Correios|Nossa Entrega";Expresso;;20000;28999;;"1.234,50"',
-            ';;;;;;',
-            'Nossa Entrega;Econômico;*;;;;0',
+            'Transportadora;Método;País;CEP de;CEP até;Peso até;Preço;Prazo',
+            'Nossa Entrega | Correios;Expresso;br;01000;05999;5;12,90;2 a 4 dias úteis',
+            '"Correios|Nossa Entrega";Expresso;;20000;28999;;"1.234,50";3',
+            ';;;;;;;',
+            'Nossa Entrega;Econômico;*;;;;0;',
         ]));
 
         $this->assertSame([], $result['errors']);
@@ -45,10 +45,13 @@ class CsvParserTest extends TestCase
                 'subtotal_from' => null,
                 'subtotal_to' => null,
                 'price' => 12.9,
+                'delivery_time' => '2-4',
             ],
             $result['methods']['Expresso']['rows'][0]
         );
         $this->assertSame(1234.5, $result['methods']['Expresso']['rows'][1]['price']);
+        $this->assertSame('3', $result['methods']['Expresso']['rows'][1]['delivery_time']);
+        $this->assertSame('', $result['methods']['Econômico']['rows'][0]['delivery_time']);
         $this->assertSame('', $result['methods']['Econômico']['rows'][0]['dest_country_id']);
         $this->assertSame(0.0, $result['methods']['Econômico']['rows'][0]['price']);
     }
@@ -76,6 +79,16 @@ class CsvParserTest extends TestCase
         $this->assertStringContainsString('cannot be negative', $errors[4]);
         $this->assertStringContainsString('"abc"', $errors[5]);
         $this->assertStringContainsString('same carriers', $errors[6]);
+    }
+
+    public function testRejectsAnInvalidDeliveryTime(): void
+    {
+        $result = $this->parser->parse("carrier,method,price,prazo\nA,B,10,4-2\nA,B,10,soon");
+        $errors = array_map('strval', $result['errors']);
+
+        $this->assertCount(2, $errors);
+        $this->assertStringContainsString('Line 2: "4-2" is not a delivery time', $errors[0]);
+        $this->assertStringContainsString('Line 3: "soon"', $errors[1]);
     }
 
     public function testRequiresTheMainColumns(): void

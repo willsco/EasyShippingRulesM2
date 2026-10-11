@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace WillSco\EasyShippingRulesM2\Test\Unit\Model;
 
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\Collection;
@@ -33,7 +34,31 @@ class RuleValidatorTest extends TestCase
             ->disableOriginalConstructor()
             ->onlyMethods(['create'])
             ->getMock();
-        $this->validator = new RuleValidator($this->collectionFactory);
+        $timezone = $this->createMock(TimezoneInterface::class);
+        $timezone->method('scopeDate')->willReturn(new \DateTime('2026-10-11'));
+        $this->validator = new RuleValidator($this->collectionFactory, $timezone);
+    }
+
+    public function testFiltersRulesByTodayOrTheSimulatedDay(): void
+    {
+        $today = $this->collection([1]);
+        $today->method('addActiveFilter')->willReturnSelf();
+        $today->expects($this->once())->method('addDateFilter')->with('2026-10-11');
+        $simulated = $this->collection([1]);
+        $simulated->method('addActiveFilter')->willReturnSelf();
+        $simulated->expects($this->once())->method('addDateFilter')->with('2026-11-27');
+        $this->collectionFactory->method('create')->willReturnOnConsecutiveCalls($today, $simulated);
+
+        $this->assertSame('2026-10-11', $this->validator->getDate());
+        $this->validator->getActiveRule(1);
+        $this->assertSame(
+            '2026-11-27',
+            $this->validator->runAtDate('2026-11-27', function (): string {
+                $this->validator->getActiveRule(1);
+                return $this->validator->getDate();
+            })
+        );
+        $this->assertSame('2026-10-11', $this->validator->getDate());
     }
 
     public function testLoadsOnlyActiveRules(): void

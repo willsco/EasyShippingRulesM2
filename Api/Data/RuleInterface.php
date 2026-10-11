@@ -19,6 +19,8 @@ interface RuleInterface
     public const CONDITIONS_SERIALIZED = 'conditions_serialized';
     public const AMOUNT = 'amount';
     public const SORT_ORDER = 'sort_order';
+    public const FROM_DATE = 'from_date';
+    public const TO_DATE = 'to_date';
     public const CREATED_AT = 'created_at';
     public const UPDATED_AT = 'updated_at';
 
@@ -111,6 +113,36 @@ interface RuleInterface
      * @return $this
      */
     public function setSortOrder(int $sortOrder): self;
+
+    /**
+     * First day the rule can be valid (YYYY-MM-DD, store time); null: no start.
+     *
+     * @return string|null
+     */
+    public function getFromDate(): ?string;
+
+    /**
+     * Set the first day.
+     *
+     * @param string|null $fromDate YYYY-MM-DD
+     * @return $this
+     */
+    public function setFromDate(?string $fromDate): self;
+
+    /**
+     * Last day the rule can be valid (YYYY-MM-DD, store time, inclusive); null: no end.
+     *
+     * @return string|null
+     */
+    public function getToDate(): ?string;
+
+    /**
+     * Set the last day.
+     *
+     * @param string|null $toDate YYYY-MM-DD
+     * @return $this
+     */
+    public function setToDate(?string $toDate): self;
 
     /**
      * Conditions tree as JSON, as stored by the rule editor; null when the rule has no conditions.

@@ -68,6 +68,21 @@ class InputParserTest extends TestCase
         $this->assertSame([], $none->activeRuleIds);
     }
 
+    public function testParseSimulationDate(): void
+    {
+        $this->assertNull($this->parser->parse(['country_id' => 'BR'])->date);
+        $this->assertSame(
+            '2026-11-27',
+            $this->parser->parse(['country_id' => 'BR', 'simulation_date' => '2026-11-27'])->date
+        );
+    }
+
+    public function testRejectsAnInvalidSimulationDate(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->parser->parse(['country_id' => 'BR', 'simulation_date' => '2026-02-30']);
+    }
+
     public function testCountryIsRequired(): void
     {
         $this->expectException(LocalizedException::class);

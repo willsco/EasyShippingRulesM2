@@ -32,6 +32,7 @@ $statusLabels = [
     'valid' => __('Valid'),
     'invalid' => __('Not valid'),
     'disabled' => __('Disabled'),
+    'out_of_dates' => __('Outside its dates'),
 ];
 $result = $block->getResult();
 ?>
@@ -128,6 +129,21 @@ $result = $block->getResult();
                 </div>
             </div>
         <?php endif; ?>
+        <div class="admin__field">
+            <label class="admin__field-label" for="esr-date">
+                <span><?= $escaper->escapeHtml(__('Simulation Date')) ?></span>
+            </label>
+            <div class="admin__field-control">
+                <input id="esr-date" name="simulation_date" type="date" class="admin__control-text"
+                       value="<?= $escaper->escapeHtmlAttr($block->getInputValue('simulation_date')) ?>"/>
+                <div class="admin__field-note">
+                    <?= $escaper->escapeHtml(__(
+                        'Rules count only between their "Valid From" and "Valid To" dates. Empty: today. '
+                        . 'Pick a day to preview a campaign before it starts.'
+                    )) ?>
+                </div>
+            </div>
+        </div>
     </fieldset>
     <fieldset class="fieldset admin__fieldset">
         <legend class="admin__legend legend">
@@ -195,10 +211,11 @@ $result = $block->getResult();
         </div>
         <p>
             <?= $escaper->escapeHtml(__(
-                'Subtotal: %1 | Items: %2 | Weight: %3',
+                'Subtotal: %1 | Items: %2 | Weight: %3 | Date: %4',
                 $block->formatPrice($result['cart']['subtotal']),
                 $result['cart']['qty'],
-                $result['cart']['weight']
+                $result['cart']['weight'],
+                $result['date']
             )) ?>
         </p>
         <?php if (!$result['rates']): ?>

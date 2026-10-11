@@ -207,6 +207,65 @@ class Rule extends AbstractModel implements RuleInterface
     /**
      * @inheritdoc
      */
+    public function getFromDate(): ?string
+    {
+        return $this->getDateValue(self::FROM_DATE);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setFromDate(?string $fromDate): RuleInterface
+    {
+        return $this->setData(self::FROM_DATE, $fromDate ?: null);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getToDate(): ?string
+    {
+        return $this->getDateValue(self::TO_DATE);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setToDate(?string $toDate): RuleInterface
+    {
+        return $this->setData(self::TO_DATE, $toDate ?: null);
+    }
+
+    /**
+     * Whether the given day (YYYY-MM-DD) is within the rule dates, both inclusive.
+     *
+     * @param string $date
+     * @return bool
+     */
+    public function isWithinDates(string $date): bool
+    {
+        $from = $this->getFromDate();
+        $to = $this->getToDate();
+
+        return ($from === null || $from <= $date) && ($to === null || $to >= $date);
+    }
+
+    /**
+     * Date column as YYYY-MM-DD (the database may add a time).
+     *
+     * @param string $key
+     * @return string|null
+     */
+    private function getDateValue(string $key): ?string
+    {
+        $value = (string)$this->getData($key);
+
+        return $value === '' ? null : substr($value, 0, 10);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function getConditionsJson(): ?string
     {
         // The parent drops the serialized column once the conditions tree is built.

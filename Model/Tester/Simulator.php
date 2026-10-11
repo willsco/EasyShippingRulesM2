@@ -32,6 +32,7 @@ use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory as
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\CollectionFactory as CustomMethodCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\ExistingMethod\CollectionFactory as ExistingMethodCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\CollectionFactory as RuleCollectionFactory;
+use WillSco\EasyShippingRulesM2\Model\Rule;
 use WillSco\EasyShippingRulesM2\Model\RuleValidator;
 use WillSco\EasyShippingRulesM2\Model\Shipping\CarrierCode;
 use WillSco\EasyShippingRulesM2\Model\Shipping\ProcessorState;
@@ -99,9 +100,10 @@ class Simulator
         // Emulating the store also switches to its locale, so texts stay phrases until the admin locale is back.
         $this->emulation->startEnvironmentEmulation($input->storeId, Area::AREA_FRONTEND, true);
         try {
-            $result = $input->activeRuleIds === null
-                ? $this->run($input)
-                : $this->ruleValidator->runWithActiveRules($input->activeRuleIds, fn () => $this->run($input));
+            $run = $input->activeRuleIds === null
+                ? fn () => $this->run($input)
+                : fn () => $this->ruleValidator->runWithActiveRules($input->activeRuleIds, fn () => $this->run($input));
+            $result = $input->date === null ? $run() : $this->ruleValidator->runAtDate($input->date, $run);
         } catch (LocalizedException $e) {
             $error = $e;
         } finally {
@@ -145,7 +147,8 @@ class Simulator
                 'customer_group_id' => (int)$quote->getCustomerGroupId(),
             ],
             'rates' => $this->compareRates($before, $after),
-            'rules' => $this->explainRules($address),
+            'date' => $this->ruleValidator->getDate(),
+            'rules' => $this->explainRules($address, $input->activeRuleIds),
             'custom_methods' => $this->explainCustomMethods($address, $input->storeId),
             'existing_methods' => $this->explainExistingMethods($address, $input->storeId),
         ];
@@ -266,21 +269,33 @@ class Simulator
     }
 
     /**
-     * Validity of every rule for the simulated address.
+     * Validity of every rule for the simulated address and day.
      *
      * @param Address $address
+     * @param int[]|null $activeRuleIds rules chosen in the tester; null when the enabled ones are used
      * @return array
      */
-    private function explainRules(Address $address): array
+    private function explainRules(Address $address, ?array $activeRuleIds): array
     {
+        $date = $this->ruleValidator->getDate();
         $rules = [];
+        /** @var Rule $rule */
         foreach ($this->ruleCollectionFactory->create()->setOrder('rule_id', 'ASC') as $rule) {
-            $valid = $this->ruleValidator->isValid((int)$rule->getId(), $address);
+            $selected = $activeRuleIds === null
+                ? $rule->isActive()
+                : in_array((int)$rule->getId(), $activeRuleIds, true);
+            if (!$selected) {
+                $status = 'disabled';
+            } elseif (!$rule->isWithinDates($date)) {
+                $status = 'out_of_dates';
+            } else {
+                $status = $this->ruleValidator->isValid((int)$rule->getId(), $address) ? 'valid' : 'invalid';
+            }
             $rules[] = [
                 'id' => (int)$rule->getId(),
                 'name' => (string)$rule->getName(),
-                'status' => $valid === null ? 'disabled' : ($valid ? 'valid' : 'invalid'),
-                'simulated' => $this->simulatedChange($rule->isActive(), $valid !== null),
+                'status' => $status,
+                'simulated' => $this->simulatedChange($rule->isActive(), $selected),
             ];
         }
 
@@ -320,7 +335,7 @@ class Simulator
         $defaultRuleBlocks = $this->isBlockedByDefaultRule($address, $storeId);
 
         $methods = $this->customMethodCollectionFactory->create()->setOrder('method_id', 'ASC')->getItems();
-        $tablePrices = $this->rateTablePrices($methods, $address);
+        $tableRates = $this->rateTableRates($methods, $address);
 
         $result = [];
         /** @var CustomMethodInterface $method */
@@ -340,14 +355,14 @@ class Simulator
             if ($reason === null && $defaultRuleBlocks) {
                 $reason = __('The Default Rule is not valid for this cart.');
             }
-            if ($reason === null && $isRateTable && !isset($tablePrices[(int)$method->getId()])) {
+            if ($reason === null && $isRateTable && !isset($tableRates[(int)$method->getId()])) {
                 $reason = __('No line of its rate table matches this destination, weight and subtotal.');
             }
 
             $details = $reason ?? $this->validRuleText($method, $address);
             if ($reason === null && $isRateTable) {
                 // Kept as phrases: they are rendered after the store emulation, in the admin locale.
-                $price = $tablePrices[(int)$method->getId()];
+                $price = $tableRates[(int)$method->getId()]['price'];
                 $details = $details === ''
                     ? __('Rate table price: %1.', $price)
                     : __('%1 Rate table price: %2.', $details, $price);
@@ -374,13 +389,13 @@ class Simulator
     }
 
     /**
-     * Rate table prices of the cart, as RateProcessor finds them.
+     * Rate table price and delivery time of the cart by method ID, as RateProcessor finds them.
      *
      * @param CustomMethodInterface[] $methods
      * @param Address $address
-     * @return array<int, float>
+     * @return array
      */
-    private function rateTablePrices(array $methods, Address $address): array
+    private function rateTableRates(array $methods, Address $address): array
     {
         $methodIds = [];
         foreach ($methods as $method) {
@@ -398,7 +413,7 @@ class Simulator
         $request->setPackageWeight($address->getWeight());
         $request->setPackageValueWithDiscount($address->getBaseSubtotalWithDiscount());
 
-        return $this->rateFinder->findPrices($methodIds, $request);
+        return $this->rateFinder->findRates($methodIds, $request);
     }
 
     /**

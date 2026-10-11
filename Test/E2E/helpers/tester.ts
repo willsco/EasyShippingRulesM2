@@ -6,6 +6,8 @@ import { testData } from './fixtures';
 export interface SimulatedRules {
     enable?: string[];
     disable?: string[];
+    /** Simulation date, YYYY-MM-DD. */
+    date?: string;
 }
 
 /**
@@ -27,6 +29,9 @@ export async function runTester(page: Page, postcode: string, rules: SimulatedRu
             ...selected.filter((value) => !rules.disable?.includes(value)),
             ...(rules.enable ?? []),
         ]);
+    }
+    if (rules.date) {
+        await page.locator('#esr-date').fill(rules.date);
     }
     await page.locator('.esr-tester button[type="submit"]').click();
     await waitForAdmin(page);

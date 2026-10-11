@@ -70,6 +70,7 @@ class RuleRepository implements RuleRepositoryInterface, ResetAfterRequestInterf
     public function save(RuleInterface $rule): RuleInterface
     {
         $this->validateConditions($rule);
+        $this->validateDates($rule);
         try {
             /** @var Rule $rule */
             $this->resource->save($rule);
@@ -140,6 +141,30 @@ class RuleRepository implements RuleRepositoryInterface, ResetAfterRequestInterf
     public function deleteById(int $ruleId): bool
     {
         return $this->delete($this->getById($ruleId));
+    }
+
+    /**
+     * Dates must be YYYY-MM-DD, the first not after the last.
+     *
+     * @param RuleInterface $rule
+     * @return void
+     * @throws CouldNotSaveException
+     */
+    private function validateDates(RuleInterface $rule): void
+    {
+        foreach ([$rule->getFromDate(), $rule->getToDate()] as $date) {
+            if ($date !== null && \DateTime::createFromFormat('!Y-m-d', $date)?->format('Y-m-d') !== $date) {
+                throw new CouldNotSaveException(__('"%1" is not a valid date. Use YYYY-MM-DD.', $date));
+            }
+        }
+
+        $from = $rule->getFromDate();
+        $to = $rule->getToDate();
+        if ($from !== null && $to !== null && $from > $to) {
+            throw new CouldNotSaveException(
+                __('The rule ends before it starts. Check the "Valid From" and "Valid To" dates.')
+            );
+        }
     }
 
     /**

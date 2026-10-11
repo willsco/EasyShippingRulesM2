@@ -9,6 +9,7 @@ namespace WillSco\EasyShippingRulesM2\Model;
 
 use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Rule\CollectionFactory as RuleCollectionFactory;
 
 /**
@@ -53,12 +54,21 @@ class RuleValidator implements ResetAfterRequestInterface
     private ?array $simulatedRuleIds = null;
 
     /**
+     * Day used instead of today while the rule tester runs (YYYY-MM-DD).
+     *
+     * @var string|null
+     */
+    private ?string $simulatedDate = null;
+
+    /**
      * Initialize dependencies.
      *
      * @param RuleCollectionFactory $ruleCollectionFactory
+     * @param TimezoneInterface $timezone
      */
     public function __construct(
-        private readonly RuleCollectionFactory $ruleCollectionFactory
+        private readonly RuleCollectionFactory $ruleCollectionFactory,
+        private readonly TimezoneInterface $timezone
     ) {
     }
 
@@ -74,6 +84,40 @@ class RuleValidator implements ResetAfterRequestInterface
         $this->validating = [];
         $this->cycleCuts = 0;
         $this->simulatedRuleIds = null;
+        $this->simulatedDate = null;
+    }
+
+    /**
+     * Day the rule dates are checked against (YYYY-MM-DD): today in the current store, or the simulated day.
+     *
+     * @return string
+     */
+    public function getDate(): string
+    {
+        return $this->simulatedDate ?? $this->timezone->scopeDate()->format('Y-m-d');
+    }
+
+    /**
+     * Run a callback as if today were the given day (YYYY-MM-DD), for the rule tester.
+     *
+     * @param string $date
+     * @param callable $callback
+     * @return mixed callback result
+     */
+    public function runAtDate(string $date, callable $callback)
+    {
+        $previous = $this->simulatedDate;
+        $previousResults = $this->results;
+        $this->simulatedDate = $date;
+        $this->activeRules = null;
+        $this->results = null;
+        try {
+            return $callback();
+        } finally {
+            $this->simulatedDate = $previous;
+            $this->activeRules = null;
+            $this->results = $previousResults;
+        }
     }
 
     /**
@@ -219,6 +263,8 @@ class RuleValidator implements ResetAfterRequestInterface
             } else {
                 $collection->addFieldToFilter('main_table.rule_id', ['in' => $this->simulatedRuleIds]);
             }
+            // Rules outside their dates count as not active, in the rule tester too.
+            $collection->addDateFilter($this->getDate());
             foreach ($collection as $rule) {
                 $this->activeRules[(int)$rule->getId()] = $rule;
             }

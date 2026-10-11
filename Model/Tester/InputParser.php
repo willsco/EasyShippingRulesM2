@@ -53,8 +53,31 @@ class InputParser
             (int)($data['customer_group_id'] ?? 0),
             trim((string)($data['customer_email'] ?? '')),
             $this->parseItems((string)($data['items'] ?? '')),
-            $this->parseRuleIds($data)
+            $this->parseRuleIds($data),
+            $this->parseDate((string)($data['simulation_date'] ?? ''))
         );
+    }
+
+    /**
+     * Simulation day as YYYY-MM-DD (the browser date input format); null when empty.
+     *
+     * @param string $value
+     * @return string|null
+     * @throws LocalizedException
+     */
+    private function parseDate(string $value): ?string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        $date = \DateTime::createFromFormat('!Y-m-d', $value);
+        if (!$date || $date->format('Y-m-d') !== $value) {
+            throw new LocalizedException(__('"%1" is not a valid date.', __('Simulation Date')));
+        }
+
+        return $value;
     }
 
     /**

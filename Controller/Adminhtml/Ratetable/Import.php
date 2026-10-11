@@ -9,34 +9,35 @@ namespace WillSco\EasyShippingRulesM2\Controller\Adminhtml\Ratetable;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\Session;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Psr\Log\LoggerInterface;
 use WillSco\EasyShippingRulesM2\Model\RateTable\Importer;
+use WillSco\EasyShippingRulesM2\Model\RateTable\UploadStorage;
 
 /**
- * Import an uploaded rate table spreadsheet.
+ * Import the spreadsheet confirmed on the preview, or discard it.
  */
 class Import extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = Index::ADMIN_RESOURCE;
 
     /**
-     * Larger files are refused before parsing (about 100,000 lines).
-     */
-    private const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-    /**
      * Initialize dependencies.
      *
      * @param Context $context
      * @param Importer $importer
+     * @param UploadStorage $uploadStorage
+     * @param Session $session
      * @param LoggerInterface $logger
      */
     public function __construct(
         Context $context,
         private readonly Importer $importer,
+        private readonly UploadStorage $uploadStorage,
+        private readonly Session $session,
         private readonly LoggerInterface $logger
     ) {
         parent::__construct($context);
@@ -50,19 +51,26 @@ class Import extends Action implements HttpPostActionInterface
     public function execute()
     {
         $redirect = $this->resultRedirectFactory->create()->setPath('*/*/');
-        $file = $this->getRequest()->getFiles('rate_table_file');
+        $token = (string)$this->getRequest()->getParam('token');
+
+        // Only the file previewed last in this admin session can be imported.
+        $contents = $token !== '' && $token === (string)$this->session->getData(Preview::SESSION_TOKEN)
+            ? $this->uploadStorage->load($token)
+            : null;
+        $this->session->unsetData(Preview::SESSION_TOKEN);
+        $this->uploadStorage->delete($token);
+
+        if ($this->getRequest()->getParam('cancel')) {
+            $this->messageManager->addNoticeMessage(__('The import was canceled. Nothing was changed.'));
+            return $redirect;
+        }
+        if ($contents === null) {
+            $this->messageManager->addErrorMessage(__('This preview has expired. Upload the file again.'));
+            return $redirect;
+        }
 
         try {
-            if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
-                || !is_uploaded_file((string)$file['tmp_name'])
-            ) {
-                throw new LocalizedException(__('Choose a CSV file to import.'));
-            }
-            if ((int)$file['size'] > self::MAX_FILE_SIZE) {
-                throw new LocalizedException(__('The file is larger than 10 MB.'));
-            }
-
-            $summary = $this->importer->import((string)file_get_contents((string)$file['tmp_name']));
+            $summary = $this->importer->import($contents);
             $this->messageManager->addSuccessMessage(__(
                 'Imported %1 rate line(s) into %2 method(s).',
                 $summary['rows'],

@@ -6,7 +6,80 @@
 
 /** @var \WillSco\EasyShippingRulesM2\Block\Adminhtml\RateTable $block */
 /** @var \Magento\Framework\Escaper $escaper */
+$preview = $block->getPreview();
 ?>
+<?php if ($preview !== null): ?>
+    <section class="admin__page-section esr-rate-table-preview">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Review Before Importing')) ?></span>
+        </div>
+        <p>
+            <?= $escaper->escapeHtml(__(
+                '"%1" has %2 rate line(s) for %3 method(s). Nothing has been saved yet.',
+                $block->getData('file_name'),
+                $preview['rows'],
+                count($preview['methods'])
+            )) ?>
+        </p>
+        <?php if ($preview['new_carriers']): ?>
+            <div class="message message-notice">
+                <?= $escaper->escapeHtml(__('New carriers: %1', implode(', ', $preview['new_carriers']))) ?>
+            </div>
+        <?php endif; ?>
+        <table class="data-grid">
+            <thead>
+            <tr>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Method')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Carriers')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('What Changes')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Lines Now')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Lines After')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Lines Added')) ?></th>
+                <th class="data-grid-th"><?= $escaper->escapeHtml(__('Lines Removed')) ?></th>
+            </tr>
+            </thead>
+            <tbody>
+            <?php foreach ($preview['methods'] as $method): ?>
+                <?php
+                if ($method['is_new']) {
+                    $change = __('New method');
+                } elseif ($method['added'] || $method['removed']) {
+                    $change = __('Table changes');
+                } elseif ($method['reordered']) {
+                    $change = __('Same lines, new order');
+                } else {
+                    $change = __('No change');
+                }
+                ?>
+                <tr>
+                    <td><?= $escaper->escapeHtml($method['name']) ?></td>
+                    <td><?= $escaper->escapeHtml(implode(', ', $method['carriers'])) ?></td>
+                    <td><?= $escaper->escapeHtml($change) ?></td>
+                    <td><?= (int)$method['rows_before'] ?></td>
+                    <td><?= (int)$method['rows_after'] ?></td>
+                    <td><?= (int)$method['added'] ?></td>
+                    <td><?= (int)$method['removed'] ?></td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table>
+        <form action="<?= $escaper->escapeUrl($block->getImportUrl()) ?>" method="post">
+            <input name="form_key" type="hidden" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
+            <input name="token" type="hidden" value="<?= $escaper->escapeHtmlAttr($block->getData('token')) ?>"/>
+            <div class="admin__field">
+                <div class="admin__field-control">
+                    <button type="submit" class="action-primary">
+                        <span><?= $escaper->escapeHtml(__('Confirm Import')) ?></span>
+                    </button>
+                    <button type="submit" name="cancel" value="1" class="action-secondary">
+                        <span><?= $escaper->escapeHtml(__('Cancel')) ?></span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </section>
+<?php endif; ?>
+
 <section class="admin__page-section">
     <p>
         <?= $escaper->escapeHtml(__(
@@ -54,7 +127,7 @@
 
 <section class="admin__page-section">
     <div class="admin__page-section-title"><span class="title"><?= $escaper->escapeHtml(__('Import')) ?></span></div>
-    <form action="<?= $escaper->escapeUrl($block->getImportUrl()) ?>" method="post" enctype="multipart/form-data">
+    <form action="<?= $escaper->escapeUrl($block->getPreviewUrl()) ?>" method="post" enctype="multipart/form-data">
         <input name="form_key" type="hidden" value="<?= $escaper->escapeHtmlAttr($block->getFormKey()) ?>"/>
         <fieldset class="fieldset admin__fieldset">
             <div class="admin__field _required">
@@ -65,7 +138,8 @@
                     <input id="esr-file" name="rate_table_file" type="file" accept=".csv,text/csv" required="required"/>
                     <div class="admin__field-note">
                         <?= $escaper->escapeHtml(__(
-                            'The tables of the methods in the file are replaced; other methods are not changed. '
+                            'You see what will change and confirm before anything is saved. The tables of the methods '
+                            . 'in the file are replaced; other methods are not changed. '
                             . 'If any line is wrong, nothing is imported and the errors are listed.'
                         )) ?>
                     </div>
@@ -74,7 +148,7 @@
             <div class="admin__field">
                 <div class="admin__field-control">
                     <button type="submit" class="action-primary">
-                        <span><?= $escaper->escapeHtml(__('Import')) ?></span>
+                        <span><?= $escaper->escapeHtml(__('Preview Import')) ?></span>
                     </button>
                 </div>
             </div>
@@ -103,7 +177,7 @@
     <p class="admin__field-note">
         <?= $escaper->escapeHtml(__(
             'Portuguese column names also work: transportadora, metodo, pais, cep_de, cep_ate, peso_de, peso_ate, '
-            . 'subtotal_de, subtotal_ate, preco.'
+            . 'subtotal_de, subtotal_ate, preco, prazo.'
         )) ?>
     </p>
 </section>

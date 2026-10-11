@@ -14,6 +14,7 @@ use Magento\Catalog\Model\Product\Type;
 use Magento\Catalog\Model\Product\Visibility;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\Framework\App\Config\MutableScopeConfigInterface;
+use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\ObjectManagerInterface;
 use Magento\OfflineShipping\Model\SalesRule\Rule as FreeShippingSource;
@@ -43,6 +44,7 @@ use WillSco\EasyShippingRulesM2\Model\Rule\Condition\Combine;
 use WillSco\EasyShippingRulesM2\Model\Rule\Condition\Customer;
 use WillSco\EasyShippingRulesM2\Model\Rule\Condition\CustomerGroup;
 use WillSco\EasyShippingRulesM2\Model\RuleFactory;
+use WillSco\EasyShippingRulesM2\Model\RuleValidator;
 use WillSco\EasyShippingRulesM2\Model\Shipping\Carrier as EsrCarrier;
 use WillSco\EasyShippingRulesM2\Model\Shipping\RateProcessor;
 
@@ -232,6 +234,77 @@ class RateProcessorTest extends TestCase
 
         $importer->import("carrier,method,price\nOur Delivery,Flat Table,0\n");
         $this->assertSame(0.0, $this->collectRates($this->createQuote(self::RIO, 1))[$code]['price']);
+    }
+
+    public function testRuleDatesLimitWhenTheRuleCounts(): void
+    {
+        $validator = $this->objectManager->get(RuleValidator::class);
+        $tomorrow = (new \DateTime($validator->getDate()))->modify('+1 day')->format('Y-m-d');
+        $carrier = $this->createCarrier('Our Delivery');
+        $campaign = $this->createRule('Campaign', [], 5.0);
+        $campaign->setFromDate($tomorrow)->setToDate($tomorrow);
+        $this->objectManager->get(RuleRepositoryInterface::class)->save($campaign);
+        $method = $this->createCustomMethod($carrier, 'Campaign delivery', [(int)$campaign->getId()]);
+        $code = 'easyshippingrules' . $carrier->getId() . '_m' . $method->getId();
+
+        $this->assertArrayNotHasKey($code, $this->collectRates($this->createQuote(self::RIO, 1)), 'Not started');
+
+        $rates = $validator->runAtDate($tomorrow, fn () => $this->collectRates($this->createQuote(self::RIO, 1)));
+        $this->assertSame(5.0, $rates[$code]['price']);
+    }
+
+    public function testRuleRepositoryRejectsAnEndBeforeTheStart(): void
+    {
+        $rule = $this->createRule('Campaign', []);
+        $rule->setFromDate('2026-12-01')->setToDate('2026-11-30');
+
+        $this->expectException(CouldNotSaveException::class);
+        $this->objectManager->get(RuleRepositoryInterface::class)->save($rule);
+    }
+
+    public function testRateTableDeliveryTimeIsAddedToTheTitle(): void
+    {
+        $this->objectManager->get(Importer::class)->import(
+            "carrier,method,price,delivery_time\nOur Delivery,Table Express,10,2-4\nOur Delivery,Next Day,20,1\n"
+        );
+        $carrierCode = 'easyshippingrules' . $this->getCarrierId('Our Delivery');
+
+        $rates = $this->collectRates($this->createQuote(self::RIO, 1));
+
+        $express = $rates[$carrierCode . '_m' . $this->getMethodId('Table Express')];
+        $this->assertSame('Table Express (2 to 4 business days)', $express['method']);
+        $nextDay = $rates[$carrierCode . '_m' . $this->getMethodId('Next Day')];
+        $this->assertSame('Next Day (1 business day)', $nextDay['method']);
+    }
+
+    public function testImportPreviewReportsChangesAndSavesNothing(): void
+    {
+        $importer = $this->objectManager->get(Importer::class);
+        $importer->import(
+            "carrier,method,postcode_from,price\nOur Delivery,Express,01000,10\nOur Delivery,Express,20000,20\n"
+        );
+
+        $preview = $importer->preview(implode("\n", [
+            'carrier,method,postcode_from,price',
+            'Our Delivery,Express,20000,20',
+            'Our Delivery,Express,01000,12',
+            'New Carrier,Economy,,5',
+        ]));
+
+        $this->assertSame(['New Carrier'], $preview['new_carriers']);
+        $this->assertSame(3, $preview['rows']);
+        [$express, $economy] = $preview['methods'];
+        $this->assertSame(
+            ['is_new' => false, 'rows_before' => 2, 'rows_after' => 2, 'added' => 1, 'removed' => 1],
+            array_intersect_key($express, array_flip(['is_new', 'rows_before', 'rows_after', 'added', 'removed']))
+        );
+        $this->assertTrue($economy['is_new']);
+        $this->assertSame(0, $this->getMethodId('Economy'), 'Nothing saved');
+
+        $reordered = $importer->preview(
+            "carrier,method,postcode_from,price\nOur Delivery,Express,20000,20\nOur Delivery,Express,01000,10\n"
+        );
+        $this->assertTrue($reordered['methods'][0]['reordered']);
     }
 
     /**

@@ -108,6 +108,7 @@ Example: free "Express Delivery" for orders of $200 or more in São Paulo city
 | Enabled | Disabled rules are never valid. |
 | Rule Name / Description | For your reference. |
 | Priority | When several rules of a method are valid, the lowest number gives the price (ties: lowest ID). |
+| Valid From / Valid To | Optional. Days the rule can be valid, both included, in the store time zone. Outside them the rule counts as disabled, so a campaign starts and ends on its own. |
 | Conditions | When the rule is valid. Leave empty to make the rule always valid. |
 | Price / Percentage | Used by methods that have no price of their own. See [How prices are calculated](#how-prices-are-calculated). |
 
@@ -196,21 +197,27 @@ in English use `,` and decimal point. Import reads both, and files saved by Exce
 | `weight_from`, `weight_to` | Cart weight range, inclusive. |
 | `subtotal_from`, `subtotal_to` | Subtotal after discounts, inclusive. |
 | `price` | Shipping price; `0` is free. |
+| `delivery_time` | Optional. Business days, `3` or `2-4` (`2 a 4` also works), shown after the method name: "Express (2 to 4 business days)". |
 
 Empty range cells mean "no limit". Portuguese headers also work (`transportadora`, `metodo`, `pais`,
-`cep_de`, `cep_ate`, `peso_de`, `peso_ate`, `subtotal_de`, `subtotal_ate`, `preco`).
+`cep_de`, `cep_ate`, `peso_de`, `peso_ate`, `subtotal_de`, `subtotal_ate`, `preco`, `prazo`).
 
 ```csv
-carrier;method;country;postcode_from;postcode_to;weight_from;weight_to;subtotal_from;subtotal_to;price
-Our Delivery;Express;BR;01000;05999;0;5;;;12,90
-Our Delivery;Express;BR;01000;05999;5,001;30;;;19,90
-Our Delivery;Economy;BR;20000;28999;;;0;199,99;15
-Our Delivery;Economy;BR;20000;28999;;;200;;0
+carrier;method;country;postcode_from;postcode_to;weight_from;weight_to;subtotal_from;subtotal_to;price;delivery_time
+Our Delivery;Express;BR;01000;05999;0;5;;;12,90;1-2
+Our Delivery;Express;BR;01000;05999;5,001;30;;;19,90;2-3
+Our Delivery;Economy;BR;20000;28999;;;0;199,99;15;5
+Our Delivery;Economy;BR;20000;28999;;;200;;0;5
 ```
 
 The first matching line of a method, from top to bottom, sets its price; when no line matches, the
-method is not offered. Importing replaces the whole table of each method in the file and leaves the
-other methods alone. If any line is wrong, nothing is imported and the errors are listed by line.
+method is not offered.
+
+Importing takes two steps. *Preview Import* checks the file and shows, per method, whether it is new
+and how many lines are added and removed (or only reordered), plus the carriers that will be created;
+nothing is saved yet. *Confirm Import* then replaces the whole table of each method in the file and
+leaves the other methods alone; *Cancel* discards the file. If any line is wrong, the preview is not
+shown and the errors are listed by line.
 
 ### Rule Tester
 
@@ -235,6 +242,9 @@ rules selected. Select a disabled rule to try it before enabling it, or unselect
 see the cart without it. The simulation uses exactly the selected rules (also in *Shipping Rule*
 conditions of other rules) and marks the changed ones in the result. Rules keep their status in the
 store.
+
+*Simulation Date* checks the rule dates against another day, to see a campaign before it starts.
+Rules outside their dates are listed as *Outside its dates*.
 
 ### Configuration
 
@@ -337,7 +347,8 @@ curl -X POST https://shop.example/rest/V1/easyshippingrules/carriers \
 ```
 
 Custom methods take `carrier_ids`, `store_ids` and `rule_ids` as lists of IDs; rules take their
-conditions as a JSON string in `conditions_json` (export one rule with `GET` to see the format).
+conditions as a JSON string in `conditions_json` (export one rule with `GET` to see the format) and
+their dates as `from_date` / `to_date` (`YYYY-MM-DD`).
 Models dispatch the standard save and delete events with the prefixes `willsco_esr_carrier`,
 `willsco_esr_rule`, `willsco_esr_custom_method` and `willsco_esr_existing_method`
 (e.g. `willsco_esr_rule_save_after`).

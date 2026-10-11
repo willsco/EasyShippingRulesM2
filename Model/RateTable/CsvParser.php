@@ -180,6 +180,16 @@ class CsvParser
             $errors[] = __('Line %1: the price cannot be negative.', $line);
         }
 
+        try {
+            $data['delivery_time'] = $this->format->parseDeliveryTime($values['delivery_time'] ?? '');
+        } catch (\InvalidArgumentException $e) {
+            $errors[] = __(
+                'Line %1: "%2" is not a delivery time. Use business days such as 3 or 2-4.',
+                $line,
+                $values['delivery_time']
+            );
+        }
+
         return count($errors) === $count ? ['method' => $method, 'carriers' => $carriers, 'data' => $data] : null;
     }
 

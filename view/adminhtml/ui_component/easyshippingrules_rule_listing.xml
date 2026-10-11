@@ -101,6 +101,24 @@
                 <label translate="true">Priority</label>
             </settings>
         </column>
+        <column name="from_date" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="36">
+            <settings>
+                <timezone>false</timezone>
+                <dateFormat>MMM d, y</dateFormat>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Valid From</label>
+            </settings>
+        </column>
+        <column name="to_date" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="37">
+            <settings>
+                <timezone>false</timezone>
+                <dateFormat>MMM d, y</dateFormat>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Valid To</label>
+            </settings>
+        </column>
         <column name="amount" sortOrder="40">
             <settings>
                 <filter>textRange</filter>

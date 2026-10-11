@@ -40,6 +40,42 @@ class CsvFormatTest extends TestCase
         (new CsvFormat())->parseNumber('R$ 10');
     }
 
+    /**
+     * @dataProvider deliveryTimeProvider
+     */
+    public function testParseDeliveryTime(string $value, string $expected): void
+    {
+        $this->assertSame($expected, (new CsvFormat())->parseDeliveryTime($value));
+    }
+
+    public static function deliveryTimeProvider(): array
+    {
+        return [
+            'empty' => ['', ''],
+            'days' => ['3', '3'],
+            'range with hyphen' => ['2-4', '2-4'],
+            'range in Portuguese' => ['2 a 4', '2-4'],
+            'with unit' => ['2 a 4 dias úteis', '2-4'],
+            'en dash' => ['2 – 4', '2-4'],
+            'same bounds' => ['5-5', '5'],
+            'single with unit' => ['1 dia', '1'],
+        ];
+    }
+
+    /**
+     * @dataProvider invalidDeliveryTimeProvider
+     */
+    public function testParseDeliveryTimeRejects(string $value): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        (new CsvFormat())->parseDeliveryTime($value);
+    }
+
+    public static function invalidDeliveryTimeProvider(): array
+    {
+        return ['reversed' => ['4-2'], 'text' => ['soon'], 'decimal' => ['2,5']];
+    }
+
     public function testFormatNumber(): void
     {
         $format = new CsvFormat();

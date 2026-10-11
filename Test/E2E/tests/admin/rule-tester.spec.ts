@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openAdmin, uid, waitForAdmin } from '../../helpers/admin';
+import { expectSuccess, fillField, openAdmin, saveForm, uid, waitForAdmin } from '../../helpers/admin';
 import { createCarrier, createCustomMethod, createRule } from '../../helpers/fixtures';
 import { Condition, ConditionType } from '../../helpers/rules';
 import { expectApplied, runTester, testerRow } from '../../helpers/tester';
@@ -96,5 +96,28 @@ test.describe('Rule Tester', () => {
         await waitForAdmin(page);
         await expect(page.locator('.message-error')).toContainText('Add at least one product');
         await expect(page.locator('#esr-items')).toHaveValue(/does-not-exist/);
+    });
+
+    test('simulates a day within the rule dates', async ({ page }) => {
+        const id = uid();
+        const rule = `Black Friday ${id}`;
+        const method = `BF Delivery ${id}`;
+        await createCarrier(page, `Dated ${id}`);
+        await openAdmin(page, 'easyshippingrules/rule/new/');
+        await fillField(page, 'name', rule);
+        await fillField(page, 'amount', '7');
+        await fillField(page, 'from_date', '11/27/2099');
+        await fillField(page, 'to_date', '11/27/2099');
+        await saveForm(page);
+        await expectSuccess(page, 'The rule has been saved.');
+        await createCustomMethod(page, { name: method, carrier: `Dated ${id}`, rules: [rule] });
+
+        await runTester(page, '01310-100');
+        await expect(testerRow(page, 'Rules', rule)).toContainText('Outside its dates');
+        await expectApplied(page, 'Custom Methods', method, false);
+
+        await runTester(page, '01310-100', { date: '2099-11-27' });
+        await expect(testerRow(page, 'Rules', rule)).toContainText('Valid');
+        await expect(testerRow(page, 'Shipping Rates', method)).toContainText('7.00');
     });
 });

@@ -14,6 +14,7 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Stdlib\DateTime\Filter\Date as DateFilter;
 use WillSco\EasyShippingRulesM2\Api\Data\RuleInterface;
 use WillSco\EasyShippingRulesM2\Api\RuleRepositoryInterface;
 use WillSco\EasyShippingRulesM2\Block\Adminhtml\Rule\Conditions;
@@ -39,6 +40,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param DataPersistorInterface $dataPersistor
      * @param BetweenOperator $betweenOperator
      * @param ConditionTypes $conditionTypes
+     * @param DateFilter $dateFilter
      */
     public function __construct(
         Context $context,
@@ -46,7 +48,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly RuleFactory $ruleFactory,
         private readonly DataPersistorInterface $dataPersistor,
         private readonly BetweenOperator $betweenOperator,
-        private readonly ConditionTypes $conditionTypes
+        private readonly ConditionTypes $conditionTypes,
+        private readonly DateFilter $dateFilter
     ) {
         parent::__construct($context);
     }
@@ -72,7 +75,9 @@ class Save extends Action implements HttpPostActionInterface
                 ->setDescription(trim((string)($data[RuleInterface::DESCRIPTION] ?? '')) ?: null)
                 ->setIsActive((bool)($data[RuleInterface::IS_ACTIVE] ?? true))
                 ->setAmount($this->toNullableFloat($data[RuleInterface::AMOUNT] ?? null))
-                ->setSortOrder((int)($data[RuleInterface::SORT_ORDER] ?? 0));
+                ->setSortOrder((int)($data[RuleInterface::SORT_ORDER] ?? 0))
+                ->setFromDate($this->toDate($data[RuleInterface::FROM_DATE] ?? null, 'Valid From'))
+                ->setToDate($this->toDate($data[RuleInterface::TO_DATE] ?? null, 'Valid To'));
 
             // Condition inputs are posted as rule[conditions][1--1][...] by the rule editor.
             if (isset($data['rule']['conditions']) && is_array($data['rule']['conditions'])) {
@@ -109,6 +114,27 @@ class Save extends Action implements HttpPostActionInterface
         $this->dataPersistor->set(self::PERSISTOR_KEY, $data);
 
         return $id ? $redirect->setPath('*/*/edit', ['id' => $id]) : $redirect->setPath('*/*/new');
+    }
+
+    /**
+     * Date typed in the admin locale as YYYY-MM-DD; null when empty.
+     *
+     * @param mixed $value
+     * @param string $label
+     * @return string|null
+     * @throws LocalizedException
+     */
+    private function toDate($value, string $label): ?string
+    {
+        if ($value === null || trim((string)$value) === '') {
+            return null;
+        }
+
+        try {
+            return substr((string)$this->dateFilter->filter((string)$value), 0, 10);
+        } catch (\Exception $e) {
+            throw new LocalizedException(__('"%1" is not a valid date.', __($label)));
+        }
     }
 
     /**

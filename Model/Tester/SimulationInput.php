@@ -24,6 +24,7 @@ class SimulationInput
      * @param string $customerEmail when set, the cart belongs to this customer
      * @param array $items quantities indexed by SKU
      * @param int[]|null $activeRuleIds rules treated as active; null keeps the enabled ones
+     * @param string|null $date day the rule dates are checked against (YYYY-MM-DD); null is today
      */
     public function __construct(
         public readonly int $storeId,
@@ -34,7 +35,8 @@ class SimulationInput
         public readonly int $customerGroupId,
         public readonly string $customerEmail,
         public readonly array $items,
-        public readonly ?array $activeRuleIds = null
+        public readonly ?array $activeRuleIds = null,
+        public readonly ?string $date = null
     ) {
     }
 }

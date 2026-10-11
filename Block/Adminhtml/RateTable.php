@@ -52,6 +52,9 @@ class RateTable extends Template
             'subtotal_from' => __('Lowest subtotal after discounts. Empty: no limit.'),
             'subtotal_to' => __('Highest subtotal after discounts. Empty: no limit.'),
             'price' => __('Shipping price. 0 means free.'),
+            'delivery_time' => __(
+                'Optional. Business days, such as 3 or 2-4; shown after the method name at checkout.'
+            ),
         ];
     }
 
@@ -66,12 +69,34 @@ class RateTable extends Template
     }
 
     /**
-     * Get import URL.
+     * URL the upload form posts to: checks the file and shows the preview.
+     *
+     * @return string
+     */
+    public function getPreviewUrl(): string
+    {
+        return $this->getUrl('easyshippingrules/ratetable/preview');
+    }
+
+    /**
+     * URL that imports (or discards) the previewed file.
      *
      * @return string
      */
     public function getImportUrl(): string
     {
         return $this->getUrl('easyshippingrules/ratetable/import');
+    }
+
+    /**
+     * What the uploaded file would change, set by the preview controller; null on the plain page.
+     *
+     * @return array|null
+     */
+    public function getPreview(): ?array
+    {
+        $preview = $this->getData('preview');
+
+        return is_array($preview) ? $preview : null;
     }
 }

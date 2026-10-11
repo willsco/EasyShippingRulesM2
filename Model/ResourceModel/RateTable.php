@@ -28,6 +28,7 @@ class RateTable extends AbstractDb
         'subtotal_from',
         'subtotal_to',
         'price',
+        'delivery_time',
     ];
 
     /**
@@ -104,6 +105,7 @@ class RateTable extends AbstractDb
             $data['dest_country_id'] = (string)$data['dest_country_id'];
             $data['postcode_from'] = (string)$data['postcode_from'];
             $data['postcode_to'] = (string)$data['postcode_to'];
+            $data['delivery_time'] = (string)$data['delivery_time'];
             $insert[] = $data;
         }
 

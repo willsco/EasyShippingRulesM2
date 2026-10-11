@@ -20,6 +20,7 @@ use WillSco\EasyShippingRulesM2\Api\Data\MethodInterface;
 use WillSco\EasyShippingRulesM2\Model\Carrier;
 use WillSco\EasyShippingRulesM2\Model\CustomMethod;
 use WillSco\EasyShippingRulesM2\Model\ExistingMethod;
+use WillSco\EasyShippingRulesM2\Model\RateTable\DeliveryTimeFormatter;
 use WillSco\EasyShippingRulesM2\Model\RateTable\RateFinder;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\Carrier\CollectionFactory as CarrierCollectionFactory;
 use WillSco\EasyShippingRulesM2\Model\ResourceModel\CustomMethod\CollectionFactory as CustomMethodCollectionFactory;
@@ -45,6 +46,7 @@ class RateProcessor
      * @param ScopeConfigInterface $scopeConfig
      * @param CarrierCollectionFactory $carrierCollectionFactory
      * @param RateFinder $rateFinder
+     * @param DeliveryTimeFormatter $deliveryTimeFormatter
      */
     public function __construct(
         private readonly CustomMethodCollectionFactory $customMethodCollectionFactory,
@@ -55,7 +57,8 @@ class RateProcessor
         private readonly MethodFactory $rateMethodFactory,
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly CarrierCollectionFactory $carrierCollectionFactory,
-        private readonly RateFinder $rateFinder
+        private readonly RateFinder $rateFinder,
+        private readonly DeliveryTimeFormatter $deliveryTimeFormatter
     ) {
     }
 
@@ -118,12 +121,18 @@ class RateProcessor
             return [];
         }
 
-        $tablePrices = $this->rateTablePrices($methods, $request);
+        $tableRates = $this->rateTableRates($methods, $request);
         $prices = [];
+        $titles = [];
         foreach ($methods as $method) {
-            $price = $this->getPrice($method, $request, $address, $tablePrices);
+            $methodId = (int)$method->getId();
+            $price = $this->getPrice($method, $request, $address, $tableRates);
             if ($price !== null) {
-                $prices[(int)$method->getId()] = $freeShipping ? 0.0 : $price;
+                $prices[$methodId] = $freeShipping ? 0.0 : $price;
+                $titles[$methodId] = $this->deliveryTimeFormatter->format(
+                    (string)$method->getName(),
+                    $tableRates[$methodId]['delivery_time'] ?? ''
+                );
             }
         }
 
@@ -146,7 +155,7 @@ class RateProcessor
                 $rate->setCarrier($carrierCode);
                 $rate->setCarrierTitle($carrier->getName());
                 $rate->setMethod($this->carrierCode->buildMethod($methodId));
-                $rate->setMethodTitle($method->getName());
+                $rate->setMethodTitle($titles[$methodId]);
                 $rate->setPrice($prices[$methodId]);
                 $rate->setCost($prices[$methodId]);
 
@@ -165,33 +174,33 @@ class RateProcessor
      * @param CustomMethodInterface $method
      * @param RateRequest $request
      * @param Address $address
-     * @param array $tablePrices rate table prices by method ID
+     * @param array $tableRates rate table price and delivery time by method ID
      * @return float|null
      */
     private function getPrice(
         CustomMethodInterface $method,
         RateRequest $request,
         Address $address,
-        array $tablePrices
+        array $tableRates
     ): ?float {
         $ruleIds = $method->getRuleIds();
         $rule = $ruleIds ? $this->ruleValidator->getFirstValidRule($ruleIds, $address) : null;
 
         if ($method->getCalculationType() === MethodInterface::CALCULATION_RATE_TABLE) {
-            return $ruleIds && $rule === null ? null : ($tablePrices[(int)$method->getId()] ?? null);
+            return $ruleIds && $rule === null ? null : ($tableRates[(int)$method->getId()]['price'] ?? null);
         }
 
         return $rule === null ? null : $this->priceCalculator->calculate($method, $rule, $request);
     }
 
     /**
-     * Prices of the rate table methods, by method ID, for those with a matching row.
+     * Price and delivery time of the rate table methods with a matching row, by method ID.
      *
      * @param CustomMethodInterface[] $methods
      * @param RateRequest $request
-     * @return array<int, float>
+     * @return array
      */
-    private function rateTablePrices(array $methods, RateRequest $request): array
+    private function rateTableRates(array $methods, RateRequest $request): array
     {
         $methodIds = [];
         foreach ($methods as $method) {
@@ -200,7 +209,7 @@ class RateProcessor
             }
         }
 
-        return $methodIds ? $this->rateFinder->findPrices($methodIds, $request) : [];
+        return $methodIds ? $this->rateFinder->findRates($methodIds, $request) : [];
     }
 
     /**

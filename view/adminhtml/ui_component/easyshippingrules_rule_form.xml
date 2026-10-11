@@ -126,6 +126,38 @@
                 <notice translate="true">When several rules of a method are valid, the one with the lowest priority number gives the price (ties: the oldest rule).</notice>
             </settings>
         </field>
+        <field name="from_date" sortOrder="50" formElement="date">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="validate-date" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Valid From</label>
+                <dataScope>from_date</dataScope>
+                <notice translate="true">First day the rule can be valid, in the store time zone. Empty: valid from now on.</notice>
+            </settings>
+        </field>
+        <field name="to_date" sortOrder="60" formElement="date">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">rule</item>
+                </item>
+            </argument>
+            <settings>
+                <validation>
+                    <rule name="validate-date" xsi:type="boolean">true</rule>
+                </validation>
+                <dataType>text</dataType>
+                <label translate="true">Valid To</label>
+                <dataScope>to_date</dataScope>
+                <notice translate="true">Last day the rule can be valid, included. Empty: no end.</notice>
+            </settings>
+        </field>
     </fieldset>
     <fieldset name="conditions" sortOrder="20">
         <settings>

@@ -37,6 +37,21 @@ class Collection extends AbstractCollection
     }
 
     /**
+     * Keep rules whose dates include the given day (YYYY-MM-DD); empty dates do not limit.
+     *
+     * @param string $date
+     * @return $this
+     */
+    public function addDateFilter(string $date): self
+    {
+        $this->getSelect()
+            ->where('main_table.from_date IS NULL OR main_table.from_date <= ?', $date)
+            ->where('main_table.to_date IS NULL OR main_table.to_date >= ?', $date);
+
+        return $this;
+    }
+
+    /**
      * @inheritdoc
      */
     public function toOptionArray()
