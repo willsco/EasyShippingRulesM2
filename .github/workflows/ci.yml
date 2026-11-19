@@ -70,6 +70,19 @@ jobs:
           <?php
           require __DIR__ . '/vendor/autoload.php';
           require_once __DIR__ . '/vendor/magento/framework/Phrase/__.php';
+          // Generates Factory/ExtensionAttributes classes on demand, as Magento's dev/tests/unit does.
+          $generatedDir = __DIR__ . '/generated';
+          @mkdir($generatedDir, 0777, true);
+          $io = new \Magento\Framework\Code\Generator\Io(new \Magento\Framework\Filesystem\Driver\File(), $generatedDir);
+          $autoloader = new \Magento\Framework\TestFramework\Unit\Autoloader\GeneratedClassesAutoloader(
+              [
+                  new \Magento\Framework\TestFramework\Unit\Autoloader\ExtensionAttributesGenerator(),
+                  new \Magento\Framework\TestFramework\Unit\Autoloader\ExtensionAttributesInterfaceGenerator(),
+                  new \Magento\Framework\TestFramework\Unit\Autoloader\FactoryGenerator(),
+              ],
+              $io
+          );
+          spl_autoload_register([$autoloader, 'load']);
           PHP
 
       - name: PHPUnit
