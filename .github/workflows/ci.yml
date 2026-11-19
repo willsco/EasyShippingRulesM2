@@ -151,6 +151,33 @@ jobs:
               $j["config"]["policy"]["advisories"]["block"] = false; $j["config"]["audit"]["block-insecure"] = false;
               file_put_contents($f, json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));'
           composer install --no-interaction --no-progress
+          # 2.4.7's esconfig.xsd is rejected by libxml2 >= 2.12 ("content model is not determinist"),
+          # which breaks every product save. Use the upstream fix from 2.4-develop.
+          cat > vendor/magento/module-elasticsearch/etc/esconfig.xsd <<'XSD'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+          <xs:element name="config" type="configType" />
+          <xs:complexType name="configType" mixed="true">
+              <xs:choice maxOccurs="unbounded" minOccurs="1">
+                  <xs:element name="stemmer" type="stemmerDataType" />
+                  <xs:element name="stopwords_file" type="stopwordsDataType" />
+              </xs:choice>
+          </xs:complexType>
+          <xs:complexType name="stemmerDataType">
+              <xs:sequence>
+                  <xs:element type="xs:string" name="type" minOccurs="1" maxOccurs="1"/>
+                  <xs:element type="xs:string" name="default" minOccurs="1" maxOccurs="1"/>
+                  <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="stopwordsDataType">
+              <xs:sequence>
+                  <xs:element type="xs:string" name="default" minOccurs="1" maxOccurs="1"/>
+                  <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+          </xs:complexType>
+          </xs:schema>
+          XSD
           mkdir -p app/code/WillSco
           cp -a "$GITHUB_WORKSPACE/module" app/code/WillSco/EasyShippingRulesM2
 
