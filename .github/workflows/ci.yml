@@ -69,7 +69,7 @@ jobs:
           cat > bootstrap.php <<'PHP'
           <?php
           require __DIR__ . '/vendor/autoload.php';
-          require __DIR__ . '/vendor/magento/framework/Phrase/__.php';
+          require_once __DIR__ . '/vendor/magento/framework/Phrase/__.php';
           PHP
 
       - name: PHPUnit
